@@ -17,10 +17,29 @@
     </section>
 
     <!-- 周边产品展示 -->
+    <!-- 产品分类 -->
+    <section class="categories">
+      <h2>产品分类</h2>
+      <div class="category-list">
+        <div 
+          class="category-item" 
+          :class="{ 'active': selectedCategory === category.id }"
+          v-for="category in categories" 
+          :key="category.id"
+          @click="switchCategory(category.id)"
+        >
+          <i :class="category.icon"></i>
+          <span>{{ category.name }}</span>
+        </div>
+      </div>
+    </section>
+
     <section class="products">
-      <h1 class="title"> <span>精选周边产品</span> </h1>
+      <h1 class="title"> 
+        <span>{{ selectedCategory ? categories.find(c => c.id === selectedCategory).name + '产品' : '精选周边产品' }}</span> 
+      </h1>
       <div class="product-container">
-        <div class="product-card" v-for="product in products" :key="product.id">
+        <div class="product-card" v-for="product in filteredProducts" :key="product.id">
           <div class="product-image">
             <img :src="product.image" :alt="product.name" loading="lazy">
           </div>
@@ -30,17 +49,6 @@
             <div class="price">¥{{ product.price }}</div>
             <button class="btn add-to-cart">加入购物车</button>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 产品分类 -->
-    <section class="categories">
-      <h2>产品分类</h2>
-      <div class="category-list">
-        <div class="category-item" v-for="category in categories" :key="category.id">
-          <i :class="category.icon"></i>
-          <span>{{ category.name }}</span>
         </div>
       </div>
     </section>
@@ -70,51 +78,57 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
-// 周边产品数据
+// 周边产品数据 - 添加分类关联
 const products = ref([
   {
     id: 1,
     name: '湘绣丝巾',
     description: '采用优质桑蚕丝，手工绣制的精美丝巾',
     price: 398,
-    image: 'https://pic1.imgdb.cn/item/67fe2d5688c538a9b5d1b561.jpg'
+    image: 'https://pic1.imgdb.cn/item/67fe2d5688c538a9b5d1b561.jpg',
+    categoryId: 1 // 服饰配饰
   },
   {
     id: 2,
     name: '湘绣笔记本',
     description: '封面采用湘绣工艺，内页优质纸张',
     price: 158,
-    image: 'https://pic1.imgdb.cn/item/67fe2d5688c538a9b5d1b561.jpg'
+    image: 'https://pic1.imgdb.cn/item/67fe2d5688c538a9b5d1b561.jpg',
+    categoryId: 2 // 文具用品
   },
   {
     id: 3,
     name: '湘绣书签套装',
     description: '精美湘绣书签，一套四枚',
     price: 88,
-    image: 'https://pic1.imgdb.cn/item/67fe2d5688c538a9b5d1b561.jpg'
+    image: 'https://pic1.imgdb.cn/item/67fe2d5688c538a9b5d1b561.jpg',
+    categoryId: 2 // 文具用品
   },
   {
     id: 4,
     name: '湘绣抱枕',
     description: '舒适面料，精致湘绣图案',
     price: 268,
-    image: 'https://pic1.imgdb.cn/item/67fe2d5688c538a9b5d1b561.jpg'
+    image: 'https://pic1.imgdb.cn/item/67fe2d5688c538a9b5d1b561.jpg',
+    categoryId: 3 // 家居装饰
   },
   {
     id: 5,
     name: '湘绣手机壳',
     description: '时尚手机壳，点缀湘绣元素',
     price: 128,
-    image: 'https://pic1.imgdb.cn/item/67fe2d5688c538a9b5d1b561.jpg'
+    image: 'https://pic1.imgdb.cn/item/67fe2d5688c538a9b5d1b561.jpg',
+    categoryId: 4 // 数码配件
   },
   {
     id: 6,
     name: '湘绣装饰画',
     description: '小型湘绣装饰画，适合家居装饰',
     price: 598,
-    image: 'https://pic1.imgdb.cn/item/67fe2d5688c538a9b5d1b561.jpg'
+    image: 'https://pic1.imgdb.cn/item/67fe2d5688c538a9b5d1b561.jpg',
+    categoryId: 3 // 家居装饰
   }
 ])
 
@@ -126,6 +140,22 @@ const categories = ref([
   { id: 4, name: '数码配件', icon: 'fas fa-mobile-alt fa-2x' },
   { id: 5, name: '礼品套装', icon: 'fas fa-gift fa-2x' }
 ])
+
+// 当前选中的分类
+const selectedCategory = ref(null)
+
+// 切换分类
+const switchCategory = (categoryId) => {
+  selectedCategory.value = categoryId === selectedCategory.value ? null : categoryId
+}
+
+// 根据选中的分类过滤产品
+const filteredProducts = computed(() => {
+  if (!selectedCategory.value) {
+    return products.value // 显示所有产品
+  }
+  return products.value.filter(product => product.categoryId === selectedCategory.value)
+})
 </script>
 
 <style scoped>
@@ -378,6 +408,18 @@ const categories = ref([
   transform: translateY(-5px);
   box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.1);
   border-color: var(--primary-color);
+}
+
+/* 分类项选中状态样式 */
+.category-item.active {
+  background-color: var(--primary-color);
+  border-color: var(--primary-light);
+  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.15);
+}
+
+.category-item.active i,
+.category-item.active span {
+  color: #fff;
 }
 
 .category-item i {

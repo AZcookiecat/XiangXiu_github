@@ -3,7 +3,7 @@
     <!-- 页面头部 -->
     <div class="heading">
       <h3>湘绣知识图谱</h3>
-      <p>探索 <a href="/">首页</a> <span>/</span> 知识图谱</p>
+      <p><router-link to="/">首页</router-link> <span>/</span> 知识图谱</p>
     </div>
 
     <!-- 主要内容区域 -->
@@ -87,38 +87,40 @@
       </div>
 
       <!-- 详情展示区域 -->
-      <div v-if="selectedNode" class="node-details">
-        <div class="details-header">
-          <h4>{{ selectedNode.name }}</h4>
-          <button class="close-btn" @click="clearSelection">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="details-content">
-          <div class="detail-item">
-            <strong>类别:</strong> {{ selectedNode.category }}
+      <transition name="node-details">
+        <div v-if="selectedNode" class="node-details">
+          <div class="details-header">
+            <h4>{{ selectedNode.name }}</h4>
+            <button class="close-btn" @click="clearSelection">
+              <i class="fas fa-times"></i>
+            </button>
           </div>
-          <div class="detail-item">
-            <strong>描述:</strong> {{ selectedNode.description }}
-          </div>
-          <div v-if="selectedNode.related" class="detail-item">
-            <strong>相关概念:</strong>
-            <div class="related-concepts">
-              <span 
-                v-for="related in selectedNode.related" 
-                :key="related"
-                class="related-tag"
-                @click="highlightRelated(related)"
-              >
-                {{ related }}
-              </span>
+          <div class="details-content">
+            <div class="detail-item">
+              <strong>类别:</strong> {{ selectedNode.category }}
+            </div>
+            <div class="detail-item">
+              <strong>描述:</strong> {{ selectedNode.description }}
+            </div>
+            <div v-if="selectedNode.related" class="detail-item">
+              <strong>相关概念:</strong>
+              <div class="related-concepts">
+                <span 
+                  v-for="related in selectedNode.related" 
+                  :key="related"
+                  class="related-tag"
+                  @click="highlightRelated(related)"
+                >
+                  {{ related }}
+                </span>
+              </div>
+            </div>
+            <div v-if="selectedNode.imageUrl" class="detail-item">
+              <img :src="selectedNode.imageUrl" :alt="selectedNode.name" class="node-image" loading="lazy">
             </div>
           </div>
-          <div v-if="selectedNode.imageUrl" class="detail-item">
-            <img :src="selectedNode.imageUrl" :alt="selectedNode.name" class="node-image" loading="lazy">
-          </div>
         </div>
-      </div>
+      </transition>
 
       <!-- 信息卡片区域 -->
       <div class="info-cards">
@@ -870,6 +872,9 @@ watch(searchTerm, (newTerm) => {
 
 /* 知识图谱容器样式 */
 .knowledge-graph-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  margin-top: 100px; /* 为固定的导航栏留出空间 */
   min-height: 100vh;
   background-color: var(--background-color);
 }
@@ -884,16 +889,6 @@ watch(searchTerm, (newTerm) => {
   margin-bottom: 0;
   position: relative;
   overflow: hidden;
-}
-
-.heading::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%);
 }
 
 .heading h3 {
@@ -1085,7 +1080,6 @@ watch(searchTerm, (newTerm) => {
   border-radius: 8px;
   box-shadow: var(--box-shadow);
   margin-bottom: 2rem;
-  animation: slideIn 0.3s ease;
 }
 
 @keyframes slideIn {
@@ -1097,6 +1091,18 @@ watch(searchTerm, (newTerm) => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* 过渡动画效果 */
+.node-details-enter-active,
+.node-details-leave-active {
+  transition: all 0.3s ease;
+}
+
+.node-details-enter-from,
+.node-details-leave-to {
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
 }
 
 .details-header {
@@ -1112,6 +1118,7 @@ watch(searchTerm, (newTerm) => {
 .details-header h4 {
   margin: 0;
   font-size: 2rem;
+  color: white;
 }
 
 .close-btn {
@@ -1317,6 +1324,7 @@ watch(searchTerm, (newTerm) => {
   
   .details-header h4 {
     font-size: 1.8rem;
+    color: white;
   }
   
   .card-icon {

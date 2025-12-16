@@ -62,7 +62,7 @@
           <div class="icon-box"><i class="fas fa-museum fa-5x"></i></div>
           <h3>数字化展馆</h3>
           <p>沉浸式数字化湘绣展馆，通过3D虚拟技术带您身临其境欣赏湘绣珍品。探索传统工艺与现代科技的完美融合，感受湘绣艺术的独特魅力。</p>
-          <router-link to="/showroom" class="btn">探索展馆</router-link>
+          <router-link to="/venue-exhibition" class="btn">探索展馆</router-link>
         </div>
 
         <div class="box">

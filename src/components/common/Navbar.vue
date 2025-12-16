@@ -36,7 +36,7 @@
       <router-link to="/blog">博客</router-link>
       <router-link to="/team">团队</router-link>
       <router-link to="/contact">联系我们</router-link>
-      <router-link to="/chat">AI助手</router-link>
+      <router-link to="/chatBot">AI助手</router-link>
       <router-link to="/user-center">我的</router-link>
       <router-link to="/collect">我的收藏</router-link>
       <router-link to="/cart">购物车</router-link>
@@ -476,24 +476,7 @@ onUnmounted(() => {
   box-shadow: 0 0.5rem 1.5rem rgba(36, 77, 77, 0.2);
 }
 
-.navbar a::before {
-  content: '';
-  position: absolute;
-  left: -2rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 1rem;
-  height: 1rem;
-  background-color: var(--warning-color);
-  border-radius: 50%;
-  opacity: 0;
-  transition: all 0.3s ease;
-}
 
-.navbar a:hover::before {
-  left: 1rem;
-  opacity: 1;
-}
 
 /* 购物车样式 */
 .shopping-cart {

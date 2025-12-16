@@ -86,9 +86,13 @@
         <button class="close-btn" @click="closeWorkDetails">&times;</button>
         <div class="modal-body">
           <div class="work-detail-image">
-            <img :src="selectedWork.image" :alt="selectedWork.title" loading="lazy">
+            <div class="magnifier-container" @mousemove="handleMagnifierMove" @mouseleave="handleMagnifierLeave">
+              <img :src="selectedWork.image" :alt="selectedWork.title" loading="lazy" ref="mainImage">
+              <div class="magnifier-lens" v-show="showMagnifier" :style="magnifierStyle"></div>
+            </div>
           </div>
           <div class="work-detail-info">
+            <div class="magnifier-result" v-show="showMagnifier" :style="resultStyle"></div>
             <h3>{{ selectedWork.title }}</h3>
             <p class="artist">{{ selectedWork.artist }}</p>
             <p class="category">{{ getCategoryName(selectedWork.categoryId) }}</p>
@@ -105,9 +109,26 @@
 </template>
 
 <script setup>
-import { ref, inject, onMounted, onUnmounted } from 'vue'
+import { ref, inject, onMounted, onUnmounted, reactive } from 'vue'
 
 const flash = inject('flash')
+
+// 放大镜相关状态
+const mainImage = ref(null)
+const showMagnifier = ref(false)
+const magnifierStyle = reactive({
+  left: '0px',
+  top: '0px',
+  width: '100px',
+  height: '100px'
+})
+const resultStyle = reactive({
+  left: '0px',
+  top: '0px',
+  backgroundImage: '',
+  backgroundPosition: '0px 0px',
+  backgroundSize: '300% 300%'
+})
 
 // 轮播图数据和状态
 const carouselRef = ref(null)
@@ -160,6 +181,45 @@ const prevSlide = () => {
 
 const goToSlide = (index) => {
   currentSlide.value = index
+}
+
+// 放大镜功能方法
+const handleMagnifierMove = (event) => {
+  if (!mainImage.value) return
+  
+  const rect = mainImage.value.getBoundingClientRect()
+  const x = event.clientX - rect.left
+  const y = event.clientY - rect.top
+  
+  // 放大镜尺寸
+  const lensSize = 100
+  const zoomLevel = 3
+  
+  // 计算放大镜位置（限制在图片范围内）
+  let lensX = x - lensSize / 2
+  let lensY = y - lensSize / 2
+  
+  // 边界检查
+  lensX = Math.max(0, Math.min(lensX, rect.width - lensSize))
+  lensY = Math.max(0, Math.min(lensY, rect.height - lensSize))
+  
+  // 更新放大镜样式
+  magnifierStyle.left = lensX + 'px'
+  magnifierStyle.top = lensY + 'px'
+  
+  // 更新放大结果显示 - 固定在作品信息区域上层
+  resultStyle.left = '50%'
+  resultStyle.top = '50%'
+  resultStyle.transform = 'translate(-50%, -50%)'
+  resultStyle.backgroundImage = `url(${selectedWork.value.image})`
+  resultStyle.backgroundPosition = `-${lensX * zoomLevel}px -${lensY * zoomLevel}px`
+  resultStyle.backgroundSize = `${rect.width * zoomLevel}px ${rect.height * zoomLevel}px`
+  
+  showMagnifier.value = true
+}
+
+const handleMagnifierLeave = () => {
+  showMagnifier.value = false
 }
 
 // 自动轮播控制
@@ -945,9 +1005,9 @@ const viewExhibitionDetails = (exhibitionId) => {
 .modal-content {
   background-color: #fff;
   border-radius: 0.5rem;
-  max-width: 900px;
+  max-width: 1200px;
   width: 100%;
-  max-height: 90vh;
+  max-height: 95vh;
   overflow-y: auto;
   position: relative;
 }
@@ -986,10 +1046,42 @@ const viewExhibitionDetails = (exhibitionId) => {
   width: 50%;
 }
 
-.work-detail-image img {
+.magnifier-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+
+.magnifier-container img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.magnifier-lens {
+  position: absolute;
+  border: 2px solid var(--primary-color);
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+  z-index: 5;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.magnifier-result {
+  position: absolute;
+  border: 2px solid var(--primary-color);
+  border-radius: 0.5rem;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 10;
+  width: 250px;
+  height: 250px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .work-detail-info {
@@ -1332,6 +1424,32 @@ const viewExhibitionDetails = (exhibitionId) => {
   }
 }
 
+/* 响应式设计 - 中等屏幕 */
+@media (max-width: 1200px) {
+  .modal-content {
+    max-width: 90vw;
+  }
+  
+  .modal-body {
+    flex-direction: column;
+  }
+  
+  .work-detail-image {
+    width: 100%;
+    height: 400px;
+  }
+  
+  .work-detail-info {
+    width: 100%;
+    padding: 3rem;
+  }
+  
+  .magnifier-result {
+    width: 200px;
+    height: 200px;
+  }
+}
+
 /* 响应式设计 - 平板 */
 @media (max-width: 991px) {
   .carousel-container {
@@ -1394,12 +1512,16 @@ const viewExhibitionDetails = (exhibitionId) => {
   
   .work-detail-image {
     width: 100%;
-    height: 300px;
+    height: 350px;
   }
   
   .work-detail-info {
     width: 100%;
     padding: 2.5rem;
+  }
+  
+  .magnifier-result {
+    display: none; /* 平板端隐藏放大结果，避免遮挡 */
   }
 }
 
@@ -1511,6 +1633,26 @@ const viewExhibitionDetails = (exhibitionId) => {
   
   .modal-overlay {
     padding: 1rem;
+  }
+  
+  .work-detail-image {
+    height: 280px;
+  }
+  
+  .magnifier-result {
+    display: block; /* 手机端重新显示放大镜 */
+    width: 180px;
+    height: 180px;
+    position: fixed; /* 使用固定定位避免布局问题 */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1001; /* 确保在最上层 */
+  }
+  
+  .magnifier-lens {
+    width: 80px;
+    height: 80px;
   }
 }
 
@@ -1624,7 +1766,17 @@ const viewExhibitionDetails = (exhibitionId) => {
   }
   
   .work-detail-image {
-    height: 200px;
+    height: 220px;
+  }
+  
+  .magnifier-result {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .magnifier-lens {
+    width: 60px;
+    height: 60px;
   }
   
   .work-detail-info {
