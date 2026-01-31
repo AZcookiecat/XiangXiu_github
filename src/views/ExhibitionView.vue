@@ -7,14 +7,13 @@
 
     <!-- 轮播图区域 -->
     <section class="carousel-section">
-      <div class="carousel-container" ref="carouselRef" @mouseenter="stopCarousel" @mouseleave="startCarousel">
+      <div class="carousel-container" ref="carouselRef" @mouseenter="stopCarousel" @mouseleave="startCarousel" @touchstart="handleTouchStart" @touchend="handleTouchEnd">
         <!-- 轮播图片 -->
         <div class="carousel-slides">
           <div 
             v-for="(slide, index) in carouselSlides" 
             :key="slide.id"
             :class="['carousel-slide', { active: currentSlide === index }]"
-            :style="{ transform: `translateX(-${currentSlide * 100}%)` }"
           >
             <img :src="slide.imageUrl" :alt="slide.title" loading="lazy">
             <div class="carousel-caption">
@@ -101,6 +100,10 @@
               <span>创作年份：{{ selectedWork.year }}</span>
               <span>工艺技法：{{ selectedWork.technique }}</span>
             </div>
+            <button class="favorite-btn" :class="{ 'favorited': isFavorited }" @click="toggleFavorite">
+              <i class="fas fa-heart"></i>
+              <span>{{ isFavorited ? '已收藏' : '收藏作品' }}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -112,6 +115,7 @@
 import { ref, inject, onMounted, onUnmounted, reactive } from 'vue'
 
 const flash = inject('flash')
+const store = inject('store')
 
 // 放大镜相关状态
 const mainImage = ref(null)
@@ -134,6 +138,7 @@ const resultStyle = reactive({
 const carouselRef = ref(null)
 const currentSlide = ref(0)
 let carouselInterval = null
+let startTimeout = null // 用于存储startCarousel中的setTimeout
 const slideDelay = 2000 // 鼠标移走后2秒继续轮播
 const autoPlayInterval = 5000 // 自动播放间隔
 
@@ -142,45 +147,85 @@ const carouselSlides = [
     id: 1,
     title: '湘绣精品展示',
     description: '传承千年的刺绣艺术瑰宝',
-    imageUrl: '/static/pictures/微信图片_20241210130516.jpg'
+    imageUrl: '/static/pictures/动物.jpg'
   },
   {
     id: 2,
     title: '传统文化魅力',
     description: '湘绣工艺的精湛与创新',
-    imageUrl: '/static/pictures/微信图片_20241210142845.jpg'
+    imageUrl: '/static/pictures/植物.jpg'
   },
   {
     id: 3,
     title: '非遗传承',
     description: '保护和发扬优秀传统文化',
-    imageUrl: '/static/pictures/微信图片_20241210142858.jpg'
+    imageUrl: '/static/pictures/人物.jpg'
   },
   {
     id: 4,
     title: '匠心之作',
     description: '每一件作品都是匠心独运',
-    imageUrl: '/static/pictures/微信图片_20241210142905.jpg'
+    imageUrl: '/static/pictures/山水.jpg'
   },
   {
     id: 5,
     title: '文化瑰宝',
     description: '中华文化的璀璨明珠',
-    imageUrl: '/static/pictures/微信图片_20241210142912.jpg'
+    imageUrl: '/static/pictures/史实.jpg'
   }
 ]
 
 // 轮播控制方法
 const nextSlide = () => {
+  // 确保最后一张到第一张的切换时间与其他切换时间相同
   currentSlide.value = (currentSlide.value + 1) % carouselSlides.length
+  updateCarouselTransform()
 }
 
 const prevSlide = () => {
   currentSlide.value = (currentSlide.value - 1 + carouselSlides.length) % carouselSlides.length
+  updateCarouselTransform()
 }
 
 const goToSlide = (index) => {
   currentSlide.value = index
+  updateCarouselTransform()
+  // 当手动切换幻灯片时，重置自动播放定时器
+  stopCarousel()
+  startCarousel()
+}
+
+// 更新轮播图变换
+const updateCarouselTransform = () => {
+  const carouselSlidesEl = document.querySelector('.carousel-slides')
+  if (carouselSlidesEl) {
+    // 使用负百分比来实现平滑滑动
+    carouselSlidesEl.style.transform = `translateX(-${currentSlide.value * 100}%)`
+  }
+}
+
+// 添加触摸事件支持（移动端滑动）
+let touchStartX = 0
+let touchEndX = 0
+
+const handleTouchStart = (e) => {
+  touchStartX = e.changedTouches[0].screenX
+}
+
+const handleTouchEnd = (e) => {
+  touchEndX = e.changedTouches[0].screenX
+  handleSwipe()
+}
+
+const handleSwipe = () => {
+  const swipeThreshold = 50 // 滑动阈值
+  if (touchEndX < touchStartX - swipeThreshold) {
+    // 向左滑动
+    nextSlide()
+  } else if (touchEndX > touchStartX + swipeThreshold) {
+    // 向右滑动
+    prevSlide()
+  }
 }
 
 // 放大镜功能方法
@@ -224,18 +269,38 @@ const handleMagnifierLeave = () => {
 
 // 自动轮播控制
 const startCarousel = () => {
-  if (carouselInterval) clearInterval(carouselInterval)
+  // 清除可能存在的定时器和延时器
+  if (carouselInterval) {
+    clearInterval(carouselInterval)
+    carouselInterval = null
+  }
+  
+  if (startTimeout) {
+    clearTimeout(startTimeout)
+    startTimeout = null
+  }
   
   // 鼠标移走后2秒继续轮播
-  setTimeout(() => {
-    carouselInterval = setInterval(nextSlide, autoPlayInterval)
+  startTimeout = setTimeout(() => {
+    // 再次检查，确保在延时期间没有被其他操作清除
+    if (!carouselInterval) {
+      carouselInterval = setInterval(() => {
+        nextSlide()
+      }, autoPlayInterval)
+    }
   }, slideDelay)
 }
 
 const stopCarousel = () => {
+  // 清除定时器和延时器，确保轮播完全停止
   if (carouselInterval) {
     clearInterval(carouselInterval)
     carouselInterval = null
+  }
+  
+  if (startTimeout) {
+    clearTimeout(startTimeout)
+    startTimeout = null
   }
 }
 
@@ -243,12 +308,34 @@ const stopCarousel = () => {
 onMounted(() => {
   // 启动自动轮播
   startCarousel()
+  
+  // 初始化轮播图位置
+  updateCarouselTransform()
+  
+  // 确保轮播容器存在时绑定鼠标事件
+  if (carouselRef.value) {
+    // 手动绑定鼠标事件，确保事件正确触发
+    carouselRef.value.addEventListener('mouseenter', stopCarousel)
+    carouselRef.value.addEventListener('mouseleave', startCarousel)
+  }
 })
 
 onUnmounted(() => {
-  // 清理定时器
+  // 清理所有定时器和延时器
   if (carouselInterval) {
     clearInterval(carouselInterval)
+    carouselInterval = null
+  }
+  
+  if (startTimeout) {
+    clearTimeout(startTimeout)
+    startTimeout = null
+  }
+  
+  // 清理事件监听器
+  if (carouselRef.value) {
+    carouselRef.value.removeEventListener('mouseenter', stopCarousel)
+    carouselRef.value.removeEventListener('mouseleave', startCarousel)
   }
 })
 
@@ -769,11 +856,60 @@ const getCategoryName = (categoryId) => {
 const viewWorkDetails = (work) => {
   selectedWork.value = work
   showWorkDetails.value = true
+  // 延迟一点检查收藏状态，确保store已经准备好
+  setTimeout(() => {
+    checkFavoriteStatus()
+  }, 100)
 }
 
 const closeWorkDetails = () => {
   showWorkDetails.value = false
   selectedWork.value = null
+  isFavorited.value = false
+}
+
+const isFavorited = ref(false)
+
+const checkFavoriteStatus = () => {
+  if (selectedWork.value && store) {
+    // 尝试多种方式获取收藏列表
+    let collection = []
+    if (store.getters && store.getters.getCollection) {
+      collection = store.getters.getCollection()
+    } else if (store.state && store.state.collection) {
+      collection = store.state.collection
+    } else if (store.getCollectItems) {
+      collection = store.getCollectItems()
+    }
+    
+    // 检查当前作品是否在收藏列表中
+    isFavorited.value = collection.some(item => item.id === selectedWork.value.id)
+  }
+}
+
+const toggleFavorite = () => {
+  if (selectedWork.value && store) {
+    if (isFavorited.value) {
+      // 取消收藏
+      store.removeFromCollect(selectedWork.value.id)
+      flash('作品已从收藏中移除！')
+      isFavorited.value = false
+    } else {
+      // 添加收藏
+      const workToAdd = {
+        id: selectedWork.value.id,
+        title: selectedWork.value.title,
+        image: selectedWork.value.image,
+        artist: selectedWork.value.artist,
+        category: getCategoryName(selectedWork.value.categoryId),
+        type: '作品'
+      }
+      
+      store.addToCollect(workToAdd)
+      flash('作品已成功添加到收藏！')
+      isFavorited.value = true
+    }
+  }
 }
 
 const viewExhibitionDetails = (exhibitionId) => {
@@ -1132,6 +1268,56 @@ const viewExhibitionDetails = (exhibitionId) => {
   gap: 0.5rem;
 }
 
+.favorite-btn {
+  margin-top: 2rem;
+  padding: 1rem 2rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 5rem;
+  font-size: 1.6rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-family: 'STZhongsong', 'SimSun', serif;
+}
+
+.favorite-btn:hover {
+  background-color: var(--primary-light);
+  transform: translateY(-3px);
+  box-shadow: 0 0.5rem 1.5rem rgba(36, 77, 77, 0.2);
+}
+
+.favorite-btn i {
+  font-size: 1.8rem;
+  transition: transform 0.3s ease;
+}
+
+.favorite-btn:hover i {
+  transform: scale(1.2);
+  color: var(--warning-color);
+}
+
+.favorite-btn.favorited {
+  background-color: var(--warning-color);
+}
+
+.favorite-btn.favorited i {
+  color: white;
+}
+
+.favorite-btn.favorited:hover {
+  background-color: var(--warning-color);
+  opacity: 0.9;
+}
+
+.favorite-btn.favorited:hover i {
+  color: white;
+  transform: scale(1.2) rotate(15deg);
+}
+
 /* 轮播图样式 */
 .carousel-section {
   width: 100%;
@@ -1152,6 +1338,7 @@ const viewExhibitionDetails = (exhibitionId) => {
   width: 100%;
   height: 100%;
   transition: transform 0.5s ease-in-out;
+  transform: translateX(0);
 }
 
 .carousel-slide {
@@ -1164,6 +1351,11 @@ const viewExhibitionDetails = (exhibitionId) => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.carousel-slide:hover img {
+  transform: scale(1.03); /* 鼠标悬停时图片轻微放大 */
+  transition: transform 0.5s ease-in-out;
 }
 
 .carousel-caption {

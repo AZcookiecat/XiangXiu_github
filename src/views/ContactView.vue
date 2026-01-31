@@ -296,19 +296,38 @@ const submitForm = () => {
   background-color: #fff;
   padding: 4rem 9%;
   margin-bottom: 4rem;
+  box-shadow: var(--box-shadow);
+  border-radius: 8px;
 }
 
 .contact-info h2 {
-  font-size: 2.5rem;
+  font-size: 3rem;
   color: var(--primary-color);
   margin-bottom: 3rem;
   text-align: center;
+  position: relative;
+  display: inline-block;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.contact-info h2::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: var(--primary-light);
+  border-radius: 3px;
 }
 
 .info-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(25rem, 1fr));
-  gap: 3rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 /* 信息项样式 */
@@ -316,37 +335,49 @@ const submitForm = () => {
   display: flex;
   align-items: flex-start;
   gap: 2rem;
-  padding: 2rem;
-  background-color: #f9f9f9;
-  border: 0.1rem solid rgba(0,0,0,0.1);
-  border-radius: 0.5rem;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  padding: 2.5rem;
+  background: linear-gradient(135deg, #f9f9f9 0%, #f0f0f0 100%);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  transition: all 0.3s ease;
 }
 
 .info-item:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.1);
-  border-color: var(--primary-color);
+  transform: translateY(-8px);
+  box-shadow: 0 12px 30px rgba(36, 77, 77, 0.15);
+  border-color: var(--primary-light);
+  background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%);
 }
 
 .info-item .icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 60px;
-  height: 60px;
-  background-color: var(--primary-color);
+  width: 70px;
+  height: 70px;
+  background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-color) 100%);
   color: #fff;
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(36, 77, 77, 0.2);
+  transition: all 0.3s ease;
+}
+
+.info-item:hover .icon {
+  transform: scale(1.15);
+  box-shadow: 0 6px 16px rgba(36, 77, 77, 0.3);
 }
 
 .info-item .icon i {
-  font-size: 2rem;
+  font-size: 2.8rem;
 }
 
 .info-item .text h3 {
-  font-size: 1.8rem;
+  font-size: 2.2rem;
+  color: var(--primary-color);
+  margin-bottom: 1.2rem;
+  font-weight: 600;
+
   color: var(--primary-color);
   margin-bottom: 0.5rem;
 }
@@ -592,6 +623,51 @@ form {
 }
 
 @media (max-width: 768px) {
+  .intro {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .contact-info {
+    padding: 2rem 5%;
+  }
+  
+  .info-container {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .info-item {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+  }
+  
+  .info-item .icon {
+    width: 60px;
+    height: 60px;
+    font-size: 2.4rem;
+  }
+  
+  .info-item .text h3 {
+    font-size: 2rem;
+  }
+  
+  .info-item .text p {
+    font-size: 1.6rem;
+  }
+  
+  .form-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .social-links {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 450px) {
   .heading h3 {
     font-size: 2.4rem;
   }
@@ -600,41 +676,30 @@ form {
     font-size: 1.6rem;
   }
   
-  .intro .content h3 {
+  .contact-info h2 {
     font-size: 2.4rem;
   }
   
-  .info-container,
+  .info-item {
+    padding: 1.5rem;
+  }
+  
+  .info-item .icon {
+    width: 50px;
+    height: 50px;
+    font-size: 2rem;
+  }
+  
+  .info-item .text h3 {
+    font-size: 1.8rem;
+  }
+  
+  .info-item .text p {
+    font-size: 1.5rem;
+  }
+  
   .social-links {
     grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-  
-  .social-item {
-    width: 100%;
-    max-width: 300px;
-    margin: 0 auto;
-  }
-}
-
-@media (max-width: 450px) {
-  .heading h3 {
-    font-size: 2rem;
-  }
-  
-  .intro .content h3 {
-    font-size: 2rem;
-  }
-  
-  .info-item,
-  .form-group input,
-  .form-group select,
-  .form-group textarea {
-    padding: 1rem 1.2rem;
-  }
-  
-  .faq-question h3 {
-    font-size: 1.6rem;
   }
 }
 </style>
