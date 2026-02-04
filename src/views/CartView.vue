@@ -7,63 +7,67 @@
 
     <div v-if="cartItems.length > 0" class="cart-content">
       <div class="cart-items">
-        <table class="cart-table">
-          <thead>
-            <tr>
-              <th>
-                <input type="checkbox" v-model="selectAll" @change="toggleSelectAll">
-              </th>
-              <th>商品信息</th>
-              <th>单价</th>
-              <th>数量</th>
-              <th>小计</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in cartItems" :key="item.id">
-              <td>
-                <input type="checkbox" v-model="item.selected" @change="updateTotal">
-              </td>
-              <td class="product-info">
-                <img :src="item.image_url" :alt="item.name" loading="lazy" class="cart-item-image">
+        <div class="cart-header">
+          <div class="header-item">
+            <input type="checkbox" v-model="selectAll" @change="toggleSelectAll" class="select-all-checkbox">
+            <span>全选</span>
+          </div>
+          <div class="header-item">商品名称</div>
+          <div class="header-item">单价</div>
+          <div class="header-item">数量</div>
+          <div class="header-item">小计</div>
+          <div class="header-item">操作</div>
+        </div>
+        
+        <div v-for="item in cartItems" :key="item.id" class="cart-item">
+          <div class="cart-item-row">
+            <div class="cart-item-cell select-cell">
+              <input type="checkbox" v-model="item.selected" @change="updateTotal" class="item-checkbox">
+            </div>
+            <div class="cart-item-cell product-info-cell">
+              <img :src="item.image_url" :alt="item.name" loading="lazy" class="cart-item-image">
+              <div class="product-details">
                 <span class="cart-item-name">{{ item.name }}</span>
-              </td>
-              <td class="price">￥{{ item.price }}</td>
-              <td class="quantity">
+              </div>
+            </div>
+            <div class="cart-item-cell price-cell">￥{{ item.price }}</div>
+            <div class="cart-item-cell quantity-cell">
+              <div class="quantity-controls">
                 <button @click="decreaseQuantity(item)" :disabled="item.quantity <= 1" class="quantity-btn minus-btn">-</button>
                 <input type="number" v-model="item.quantity" min="1" @change="updateTotal" class="quantity-input">
                 <button @click="increaseQuantity(item)" class="quantity-btn plus-btn">+</button>
-              </td>
-              <td class="subtotal" v-if="item.selected">￥{{ item.price * item.quantity }}</td>
-              <td class="subtotal" v-else>￥0</td>
-              <td class="action">
-                <button @click="removeFromCart(item.id)" class="remove-btn" title="删除商品">
-                  <i class="fas fa-trash-alt"></i> 删除
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </div>
+            </div>
+            <div class="cart-item-cell subtotal-cell" v-if="item.selected">
+              <span class="subtotal-price">￥{{ item.price * item.quantity }}</span>
+            </div>
+            <div class="cart-item-cell subtotal-cell" v-else>￥0</div>
+            <div class="cart-item-cell action-cell">
+              <button @click="removeFromCart(item.id)" class="remove-btn" title="删除商品">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+          
+
+        </div>
       </div>
       
       <div class="cart-summary">
-        <div class="summary-actions">
-          <button @click="clearSelectedItems" class="clear-btn" :disabled="selectedCount === 0">
-            <i class="fas fa-trash"></i> 清空选中
-          </button>
-        </div>
-        <div class="total">
-          <span>合计:</span>
-          <span class="amount">￥{{ totalAmount }}</span>
-        </div>
-        <div class="selected-count">
-          已选择 <span class="count">{{ selectedCount }}</span> 件商品
+        <div class="summary-top">
+          <div class="continue-shopping">
+            <a href="/shop" class="continue-shopping-link">继续购物</a>
+            <span class="selected-info">| 共{{ cartItems.length }}件, 已选择了{{ selectedCount }}件</span>
+          </div>
+          <div class="total-amount">
+            <span>合计:</span>
+            <span class="total-price">￥{{ totalAmount }}</span>
+          </div>
         </div>
         
-        <div class="checkout">
+        <div class="summary-actions">
           <button @click="checkout" class="checkout-btn" :disabled="selectedCount === 0">
-            <i class="fas fa-shopping-cart"></i> 去结算
+            去结算
           </button>
         </div>
       </div>
@@ -360,114 +364,140 @@ watch(cartItems, () => {
   flex: 1;
 }
 
-/* 购物车表格样式 */
-.cart-table {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: #fff;
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
-  border-radius: 0.8rem;
-  overflow: hidden;
-}
-
-.cart-table th,
-.cart-table td {
+/* 购物车头部 */
+.cart-header {
+  display: grid;
+  grid-template-columns: 1fr 3fr 1.3fr 1.3fr 1.1fr 0.8fr;
+  gap: 1rem;
   padding: 1.5rem;
-  text-align: left;
-  border-bottom: 0.1rem solid #eee;
-  font-size: 1.6rem;
-  transition: background-color 0.3s ease;
-}
-
-.cart-table th {
   background-color: var(--primary-light);
-  font-weight: bold;
   color: #fff;
-  text-transform: uppercase;
-  letter-spacing: 0.1rem;
-  position: relative;
+  font-weight: bold;
+  font-size: 1.6rem;
+  border-radius: 0.8rem 0.8rem 0 0;
 }
 
-.cart-table tbody tr {
-  transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-.cart-table tbody tr:hover {
-  background-color: rgba(36, 77, 77, 0.03);
-  transform: translateX(5px);
-}
-
-.cart-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-/* 商品信息单元格 */
-.cart-table td.product-info {
+.header-item {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 0.8rem;
 }
 
-.cart-table td.product-info img.cart-item-image {
+/* 购物车商品行 */
+.cart-item {
+  background-color: #fff;
+  border: 1px solid #eee;
+  border-radius: 0.8rem;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.cart-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.cart-item-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr 1fr 1fr 1fr;
+  gap: 1rem;
+  padding: 1.5rem;
+  align-items: center;
+}
+
+/* 单元格样式 */
+.cart-item-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  height: 80px;
+}
+
+.select-cell {
+  justify-content: flex-start;
+}
+
+.product-info-cell {
+  justify-content: flex-start;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.cart-item-image {
   width: 80px;
   height: 80px;
   object-fit: cover;
   border-radius: 0.5rem;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
   border: 2px solid #f0f0f0;
+  transition: all 0.3s ease;
 }
 
-.cart-table td.product-info img.cart-item-image:hover {
+.cart-item-image:hover {
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.cart-table td.product-info span.cart-item-name {
-  color: var(--secondary-color);
-  font-size: 1.6rem;
-  max-width: 250px;
-  font-weight: 500;
-  line-height: 1.4;
+.product-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-/* 价格样式 */
-.cart-table td.price {
+.cart-item-name {
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: var(--text-color);
+  max-width: 200px;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.cart-item-desc {
+  font-size: 1.4rem;
+  color: var(--text-secondary);
+}
+
+.price-cell {
   color: var(--primary-color);
   font-weight: bold;
   font-size: 1.7rem;
 }
 
 /* 数量控制 */
-.cart-table td.quantity {
+.quantity-controls {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
-.cart-table td.quantity button.quantity-btn {
+.quantity-btn {
   width: 3.5rem;
   height: 3.5rem;
   background-color: var(--primary-light);
-  border: 0.1rem solid var(--primary-color);
-  cursor: pointer;
-  font-size: 1.8rem;
-  border-radius: 0.5rem;
+  border: 1px solid var(--primary-color);
   color: var(--primary-color);
+  font-size: 1.8rem;
+  font-weight: bold;
+  border-radius: 0.5rem;
+  cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
 }
 
-.cart-table td.quantity button.quantity-btn:hover:not(:disabled) {
+.quantity-btn:hover:not(:disabled) {
   background-color: var(--primary-color);
   color: #fff;
   transform: scale(1.1);
   box-shadow: 0 2px 8px rgba(36, 77, 77, 0.3);
 }
 
-.cart-table td.quantity button.quantity-btn:disabled {
+.quantity-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   background-color: #f1f1f1;
@@ -475,55 +505,87 @@ watch(cartItems, () => {
   color: #999;
 }
 
-.cart-table td.quantity input.quantity-input {
+.quantity-input {
   width: 7rem;
   height: 3.5rem;
   text-align: center;
-  border: 0.1rem solid var(--primary-light);
-  outline: none;
+  border: 1px solid var(--primary-light);
   border-radius: 0.5rem;
   font-size: 1.6rem;
   padding: 0 0.5rem;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: all 0.3s ease;
 }
 
-.cart-table td.quantity input.quantity-input:focus {
+.quantity-input:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 0.2rem rgba(36, 77, 77, 0.1);
+  outline: none;
 }
 
 /* 小计样式 */
-.cart-table td.subtotal {
+.subtotal-cell {
   color: var(--primary-color);
   font-weight: bold;
   font-size: 1.7rem;
 }
 
-/* 删除按钮样式 */
-.cart-table td.action button.remove-btn {
-  background-color: var(--danger-color);
-  color: white;
-  border: none;
-  padding: 0.8rem 1.6rem;
-  cursor: pointer;
-  border-radius: 0.5rem;
-  transition: all 0.3s ease;
-  font-size: 1.5rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
+.subtotal-price {
+  display: block;
 }
 
-.cart-table td.action button.remove-btn:hover {
-  background-color: var(--danger-light);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+/* 删除按钮样式 */
+.action-cell {
+  justify-content: center;
+}
+
+.remove-btn {
+  background-color: #dc3545;
+  color: #fff;
+  border: none;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+}
+
+.remove-btn:hover {
+  background-color: #c82333;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}
+
+/* 可选服务项 */
+.cart-item-services {
+  padding: 1.5rem;
+  background-color: #f9f9f9;
+  border-top: 1px solid #eee;
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.service-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.4rem;
+  color: var(--text-secondary);
+}
+
+.service-item i {
+  color: var(--success-color);
+  font-size: 1.6rem;
 }
 
 /* 购物车摘要 */
 .cart-summary {
   background-color: #fff;
-  border: 0.1rem solid var(--primary-light);
+  border: 1px solid var(--primary-light);
   padding: 3rem;
   border-radius: 0.8rem;
   text-align: right;
@@ -542,103 +604,102 @@ watch(cartItems, () => {
   background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
 }
 
-.cart-summary .summary-actions {
-  margin-bottom: 2rem;
-  text-align: left;
-}
-
-.cart-summary .summary-actions button.clear-btn {
-  background-color: transparent;
-  color: var(--danger-color);
-  border: 1px solid var(--danger-color);
-  padding: 0.8rem 1.6rem;
-  cursor: pointer;
-  border-radius: 0.5rem;
-  transition: all 0.3s ease;
-  font-size: 1.5rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.cart-summary .summary-actions button.clear-btn:hover:not(:disabled) {
-  background-color: var(--danger-color);
-  color: white;
-  transform: translateY(-1px);
-}
-
-.cart-summary .summary-actions button.clear-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  color: #999;
-  border-color: #ddd;
-}
-
-.cart-summary .total {
-  margin-bottom: 1.5rem;
-  font-size: 2rem;
+.summary-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 0;
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
   border-bottom: 1px solid #eee;
 }
 
-.cart-summary .total span:first-child {
-  color: var(--secondary-color);
+.continue-shopping {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.continue-shopping-link {
+  color: var(--primary-color);
+  font-size: 1.6rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.continue-shopping-link:hover {
+  color: var(--primary-light);
+  text-decoration: underline;
+}
+
+.selected-info {
+  font-size: 1.4rem;
+  color: var(--text-secondary);
+}
+
+.total-amount {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.total-amount span:first-child {
+  font-size: 1.8rem;
+  color: var(--text-color);
   font-weight: 500;
 }
 
-.cart-summary .total .amount {
+.total-price {
+  font-size: 2.5rem;
   color: var(--primary-color);
   font-weight: bold;
-  font-size: 2.5rem;
 }
 
-.cart-summary .selected-count {
-  margin-bottom: 2rem;
-  font-size: 1.6rem;
-  color: var(--text-secondary);
+.summary-actions {
   text-align: right;
 }
 
-.cart-summary .selected-count .count {
-  color: var(--primary-color);
-  font-weight: bold;
-  font-size: 1.8rem;
-}
-
-/* 结算按钮 */
-.cart-summary .checkout button.checkout-btn {
+.checkout-btn {
   background-color: var(--primary-color);
-  color: white;
+  color: #fff;
   border: none;
   padding: 1.2rem 3rem;
   font-size: 1.8rem;
-  cursor: pointer;
-  border-radius: 0.5rem;
-  transition: all 0.3s ease;
   font-weight: 600;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 0.1rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.8rem;
   min-width: 200px;
-  justify-content: center;
 }
 
-.cart-summary .checkout button.checkout-btn:hover:not(:disabled) {
+.checkout-btn:hover:not(:disabled) {
   background-color: var(--primary-light);
   transform: translateY(-3px);
   box-shadow: 0 8px 20px rgba(36, 77, 77, 0.3);
 }
 
-.cart-summary .checkout button.checkout-btn:disabled {
+.checkout-btn:disabled {
   background-color: #ccc;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+/* 复选框样式 */
+.select-all-checkbox,
+.item-checkbox {
+  width: 2rem;
+  height: 2rem;
+  cursor: pointer;
+  accent-color: var(--primary-color);
+  transition: transform 0.2s ease;
+}
+
+.select-all-checkbox:hover,
+.item-checkbox:hover {
+  transform: scale(1.1);
 }
 
 /* 空购物车状态 */
@@ -800,19 +861,6 @@ watch(cartItems, () => {
   box-shadow: 0 4px 12px rgba(36, 77, 77, 0.3);
 }
 
-/* 复选框样式 */
-.cart-table input[type="checkbox"] {
-  width: 2rem;
-  height: 2rem;
-  cursor: pointer;
-  accent-color: var(--primary-color);
-  transition: transform 0.2s ease;
-}
-
-.cart-table input[type="checkbox"]:hover {
-  transform: scale(1.1);
-}
-
 /* 响应式设计 - 大屏幕 */
 @media (max-width: 1200px) {
   .cart-content {
@@ -831,14 +879,21 @@ watch(cartItems, () => {
 
 /* 响应式设计 - 平板 */
 @media (max-width: 991px) {
-  .cart-table td.product-info span {
-    max-width: 180px;
-  }
-  
-  .cart-table th,
-  .cart-table td {
+  .cart-header {
+    grid-template-columns: 1fr 2fr 1fr 1fr 1fr 1fr;
+    gap: 0.5rem;
     padding: 1.2rem;
     font-size: 1.5rem;
+  }
+  
+  .cart-item-row {
+    grid-template-columns: 1fr 2fr 1fr 1fr 1fr 1fr;
+    gap: 0.5rem;
+    padding: 1.2rem;
+  }
+  
+  .cart-item-name {
+    max-width: 180px;
   }
   
   .product-grid {
@@ -861,30 +916,28 @@ watch(cartItems, () => {
     gap: 2rem;
   }
   
-  .cart-table {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
+  .cart-header {
+    display: none;
   }
   
-  .cart-table th,
-  .cart-table td {
-    padding: 1rem;
-    font-size: 1.4rem;
+  .cart-item-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1.5rem;
   }
   
-  .cart-table td.product-info {
+  .product-info-cell {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.8rem;
   }
   
-  .cart-table td.product-info img {
+  .cart-item-image {
     width: 60px;
     height: 60px;
   }
   
-  .cart-table td.product-info span {
+  .cart-item-name {
     max-width: 150px;
     white-space: normal;
   }
@@ -893,18 +946,18 @@ watch(cartItems, () => {
     padding: 2rem;
   }
   
-  .cart-summary .total {
-    font-size: 1.8rem;
+  .summary-top {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
   }
   
-  .cart-summary .total .amount {
+  .total-price {
     font-size: 2.2rem;
   }
   
-  .cart-summary .checkout button,
-  .empty-cart .go-shop-btn {
-    padding: 1rem 2rem;
-    font-size: 1.6rem;
+  .checkout-btn {
+    width: 100%;
   }
   
   .product-grid {
@@ -930,27 +983,24 @@ watch(cartItems, () => {
     padding: 1.5rem;
   }
   
-  .cart-table th,
-  .cart-table td {
-    padding: 0.8rem;
-    font-size: 1.3rem;
+  .cart-item-row {
+    padding: 1rem;
   }
   
-  .cart-table td.product-info img {
+  .cart-item-image {
     width: 50px;
     height: 50px;
   }
   
-  .cart-summary .total {
-    font-size: 1.6rem;
+  .cart-summary {
+    padding: 1.5rem;
   }
   
-  .cart-summary .total .amount {
+  .total-price {
     font-size: 2rem;
   }
   
-  .cart-summary .checkout button,
-  .empty-cart .go-shop-btn {
+  .checkout-btn {
     padding: 0.8rem 1.5rem;
     font-size: 1.5rem;
   }
@@ -969,19 +1019,25 @@ watch(cartItems, () => {
 }
 
 /* 滚动条样式优化 */
-.cart-table::-webkit-scrollbar {
+.cart-items::-webkit-scrollbar {
   height: 6px;
 }
 
-.cart-table::-webkit-scrollbar-track {
+.cart-items::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 3px;
 }
 
-.cart-table::-webkit-scrollbar-thumb {
+.cart-items::-webkit-scrollbar-thumb {
   background: var(--primary-light);
   border-radius: 3px;
 }
+
+.cart-items::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color);
+}
+
+
 
 .cart-table::-webkit-scrollbar-thumb:hover {
     background: var(--primary-color);

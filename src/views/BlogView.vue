@@ -16,10 +16,21 @@
       </div>
     </section>
 
+    <!-- 博客分类 -->
+    <section class="blog-categories">
+      <h2>文章分类</h2>
+      <div class="category-list">
+        <div class="category-item" v-for="category in categories" :key="category.id" @click="switchCategory(category.id)" :class="{ 'active': selectedCategory === category.id }">
+          <span>{{ category.name }}</span>
+          <span class="count">({{ category.count }})</span>
+        </div>
+      </div>
+    </section>
+
     <!-- 博客文章列表 -->
     <section class="blog-posts">
       <div class="blog-header">
-        <h1 class="title"> <span>最新文章</span> </h1>
+        <h1 class="title"> <span>{{ selectedCategoryName || '最新文章' }}</span> </h1>
         <div class="search-bar">
           <input type="text" placeholder="搜索文章..." v-model="searchQuery">
           <button class="search-btn">搜索</button>
@@ -66,17 +77,6 @@
         </div>
       </div>
     </section>
-
-    <!-- 博客分类 -->
-    <section class="blog-categories">
-      <h2>文章分类</h2>
-      <div class="category-list">
-        <div class="category-item" v-for="category in categories" :key="category.id">
-          <span>{{ category.name }}</span>
-          <span class="count">({{ category.count }})</span>
-        </div>
-      </div>
-    </section>
   </div>
 </template>
 
@@ -89,6 +89,9 @@ const searchQuery = ref('')
 // 当前页码
 const currentPage = ref(1)
 const postsPerPage = 6
+
+// 选中的分类
+const selectedCategory = ref(null)
 
 // 博客文章数据
 const posts = ref([
@@ -191,16 +194,46 @@ const categories = ref([
   { id: 7, name: '国际交流', count: 4 }
 ])
 
+// 分类切换方法
+const switchCategory = (categoryId) => {
+  // 再次点击取消选中
+  if (selectedCategory.value === categoryId) {
+    selectedCategory.value = null
+    return
+  }
+  selectedCategory.value = categoryId
+}
+
+// 选中分类的名称
+const selectedCategoryName = computed(() => {
+  if (!selectedCategory.value) return ''
+  const category = categories.value.find(cat => cat.id === selectedCategory.value)
+  return category ? category.name : ''
+})
+
 // 过滤后的文章
 const filteredPosts = computed(() => {
-  if (!searchQuery.value) {
-    return posts.value
+  let filtered = posts.value
+  
+  // 分类过滤
+  if (selectedCategory.value) {
+    const category = categories.value.find(cat => cat.id === selectedCategory.value)
+    if (category) {
+      filtered = filtered.filter(post => post.category === category.name)
+    }
   }
-  return posts.value.filter(post => 
-    post.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    post.excerpt.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    post.category.toLowerCase().includes(searchQuery.value.toLowerCase())
-  )
+  
+  // 搜索过滤
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(post => 
+      post.title.toLowerCase().includes(query) ||
+      post.excerpt.toLowerCase().includes(query) ||
+      post.category.toLowerCase().includes(query)
+    )
+  }
+  
+  return filtered
 })
 
 // 总页数
@@ -616,6 +649,12 @@ const currentPosts = computed(() => {
 }
 
 .category-item:hover {
+  background-color: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+}
+
+.category-item.active {
   background-color: var(--primary-color);
   color: #fff;
   border-color: var(--primary-color);

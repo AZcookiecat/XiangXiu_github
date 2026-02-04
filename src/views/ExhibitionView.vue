@@ -7,14 +7,13 @@
 
     <!-- 轮播图区域 -->
     <section class="carousel-section">
-      <div class="carousel-container" ref="carouselRef" @mouseenter="stopCarousel" @mouseleave="startCarousel">
+      <div class="carousel-container" ref="carouselRef" @mouseenter="stopCarousel" @mouseleave="startCarousel" @touchstart="handleTouchStart" @touchend="handleTouchEnd">
         <!-- 轮播图片 -->
         <div class="carousel-slides">
           <div 
             v-for="(slide, index) in carouselSlides" 
             :key="slide.id"
             :class="['carousel-slide', { active: currentSlide === index }]"
-            :style="{ transform: `translateX(-${currentSlide * 100}%)` }"
           >
             <img :src="slide.imageUrl" :alt="slide.title" loading="lazy">
             <div class="carousel-caption">
@@ -86,9 +85,13 @@
         <button class="close-btn" @click="closeWorkDetails">&times;</button>
         <div class="modal-body">
           <div class="work-detail-image">
-            <img :src="selectedWork.image" :alt="selectedWork.title" loading="lazy">
+            <div class="magnifier-container" @mousemove="handleMagnifierMove" @mouseleave="handleMagnifierLeave">
+              <img :src="selectedWork.image" :alt="selectedWork.title" loading="lazy" ref="mainImage">
+              <div class="magnifier-lens" v-show="showMagnifier" :style="magnifierStyle"></div>
+            </div>
           </div>
           <div class="work-detail-info">
+            <div class="magnifier-result" v-show="showMagnifier" :style="resultStyle"></div>
             <h3>{{ selectedWork.title }}</h3>
             <p class="artist">{{ selectedWork.artist }}</p>
             <p class="category">{{ getCategoryName(selectedWork.categoryId) }}</p>
@@ -97,6 +100,10 @@
               <span>创作年份：{{ selectedWork.year }}</span>
               <span>工艺技法：{{ selectedWork.technique }}</span>
             </div>
+            <button class="favorite-btn" :class="{ 'favorited': isFavorited }" @click="toggleFavorite">
+              <i class="fas fa-heart"></i>
+              <span>{{ isFavorited ? '已收藏' : '收藏作品' }}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -105,14 +112,33 @@
 </template>
 
 <script setup>
-import { ref, inject, onMounted, onUnmounted } from 'vue'
+import { ref, inject, onMounted, onUnmounted, reactive } from 'vue'
 
 const flash = inject('flash')
+const store = inject('store')
+
+// 放大镜相关状态
+const mainImage = ref(null)
+const showMagnifier = ref(false)
+const magnifierStyle = reactive({
+  left: '0px',
+  top: '0px',
+  width: '100px',
+  height: '100px'
+})
+const resultStyle = reactive({
+  left: '0px',
+  top: '0px',
+  backgroundImage: '',
+  backgroundPosition: '0px 0px',
+  backgroundSize: '300% 300%'
+})
 
 // 轮播图数据和状态
 const carouselRef = ref(null)
 const currentSlide = ref(0)
 let carouselInterval = null
+let startTimeout = null // 用于存储startCarousel中的setTimeout
 const slideDelay = 2000 // 鼠标移走后2秒继续轮播
 const autoPlayInterval = 5000 // 自动播放间隔
 
@@ -121,61 +147,160 @@ const carouselSlides = [
     id: 1,
     title: '湘绣精品展示',
     description: '传承千年的刺绣艺术瑰宝',
-    imageUrl: '/static/pictures/微信图片_20241210130516.jpg'
+    imageUrl: '/static/pictures/动物.jpg'
   },
   {
     id: 2,
     title: '传统文化魅力',
     description: '湘绣工艺的精湛与创新',
-    imageUrl: '/static/pictures/微信图片_20241210142845.jpg'
+    imageUrl: '/static/pictures/植物.jpg'
   },
   {
     id: 3,
     title: '非遗传承',
     description: '保护和发扬优秀传统文化',
-    imageUrl: '/static/pictures/微信图片_20241210142858.jpg'
+    imageUrl: '/static/pictures/人物.jpg'
   },
   {
     id: 4,
     title: '匠心之作',
     description: '每一件作品都是匠心独运',
-    imageUrl: '/static/pictures/微信图片_20241210142905.jpg'
+    imageUrl: '/static/pictures/山水.jpg'
   },
   {
     id: 5,
     title: '文化瑰宝',
     description: '中华文化的璀璨明珠',
-    imageUrl: '/static/pictures/微信图片_20241210142912.jpg'
+    imageUrl: '/static/pictures/史实.jpg'
   }
 ]
 
 // 轮播控制方法
 const nextSlide = () => {
+  // 确保最后一张到第一张的切换时间与其他切换时间相同
   currentSlide.value = (currentSlide.value + 1) % carouselSlides.length
+  updateCarouselTransform()
 }
 
 const prevSlide = () => {
   currentSlide.value = (currentSlide.value - 1 + carouselSlides.length) % carouselSlides.length
+  updateCarouselTransform()
 }
 
 const goToSlide = (index) => {
   currentSlide.value = index
+  updateCarouselTransform()
+  // 当手动切换幻灯片时，重置自动播放定时器
+  stopCarousel()
+  startCarousel()
+}
+
+// 更新轮播图变换
+const updateCarouselTransform = () => {
+  const carouselSlidesEl = document.querySelector('.carousel-slides')
+  if (carouselSlidesEl) {
+    // 使用负百分比来实现平滑滑动
+    carouselSlidesEl.style.transform = `translateX(-${currentSlide.value * 100}%)`
+  }
+}
+
+// 添加触摸事件支持（移动端滑动）
+let touchStartX = 0
+let touchEndX = 0
+
+const handleTouchStart = (e) => {
+  touchStartX = e.changedTouches[0].screenX
+}
+
+const handleTouchEnd = (e) => {
+  touchEndX = e.changedTouches[0].screenX
+  handleSwipe()
+}
+
+const handleSwipe = () => {
+  const swipeThreshold = 50 // 滑动阈值
+  if (touchEndX < touchStartX - swipeThreshold) {
+    // 向左滑动
+    nextSlide()
+  } else if (touchEndX > touchStartX + swipeThreshold) {
+    // 向右滑动
+    prevSlide()
+  }
+}
+
+// 放大镜功能方法
+const handleMagnifierMove = (event) => {
+  if (!mainImage.value) return
+  
+  const rect = mainImage.value.getBoundingClientRect()
+  const x = event.clientX - rect.left
+  const y = event.clientY - rect.top
+  
+  // 放大镜尺寸
+  const lensSize = 100
+  const zoomLevel = 3
+  
+  // 计算放大镜位置（限制在图片范围内）
+  let lensX = x - lensSize / 2
+  let lensY = y - lensSize / 2
+  
+  // 边界检查
+  lensX = Math.max(0, Math.min(lensX, rect.width - lensSize))
+  lensY = Math.max(0, Math.min(lensY, rect.height - lensSize))
+  
+  // 更新放大镜样式
+  magnifierStyle.left = lensX + 'px'
+  magnifierStyle.top = lensY + 'px'
+  
+  // 更新放大结果显示 - 固定在作品信息区域上层
+  resultStyle.left = '50%'
+  resultStyle.top = '50%'
+  resultStyle.transform = 'translate(-50%, -50%)'
+  resultStyle.backgroundImage = `url(${selectedWork.value.image})`
+  resultStyle.backgroundPosition = `-${lensX * zoomLevel}px -${lensY * zoomLevel}px`
+  resultStyle.backgroundSize = `${rect.width * zoomLevel}px ${rect.height * zoomLevel}px`
+  
+  showMagnifier.value = true
+}
+
+const handleMagnifierLeave = () => {
+  showMagnifier.value = false
 }
 
 // 自动轮播控制
 const startCarousel = () => {
-  if (carouselInterval) clearInterval(carouselInterval)
+  // 清除可能存在的定时器和延时器
+  if (carouselInterval) {
+    clearInterval(carouselInterval)
+    carouselInterval = null
+  }
+  
+  if (startTimeout) {
+    clearTimeout(startTimeout)
+    startTimeout = null
+  }
   
   // 鼠标移走后2秒继续轮播
-  setTimeout(() => {
-    carouselInterval = setInterval(nextSlide, autoPlayInterval)
+  startTimeout = setTimeout(() => {
+    // 再次检查，确保在延时期间没有被其他操作清除
+    if (!carouselInterval) {
+      carouselInterval = setInterval(() => {
+        nextSlide()
+      }, autoPlayInterval)
+    }
   }, slideDelay)
 }
 
 const stopCarousel = () => {
+  // 清除定时器和延时器，确保轮播完全停止
   if (carouselInterval) {
     clearInterval(carouselInterval)
     carouselInterval = null
+  }
+  
+  if (startTimeout) {
+    clearTimeout(startTimeout)
+    startTimeout = null
   }
 }
 
@@ -183,12 +308,34 @@ const stopCarousel = () => {
 onMounted(() => {
   // 启动自动轮播
   startCarousel()
+  
+  // 初始化轮播图位置
+  updateCarouselTransform()
+  
+  // 确保轮播容器存在时绑定鼠标事件
+  if (carouselRef.value) {
+    // 手动绑定鼠标事件，确保事件正确触发
+    carouselRef.value.addEventListener('mouseenter', stopCarousel)
+    carouselRef.value.addEventListener('mouseleave', startCarousel)
+  }
 })
 
 onUnmounted(() => {
-  // 清理定时器
+  // 清理所有定时器和延时器
   if (carouselInterval) {
     clearInterval(carouselInterval)
+    carouselInterval = null
+  }
+  
+  if (startTimeout) {
+    clearTimeout(startTimeout)
+    startTimeout = null
+  }
+  
+  // 清理事件监听器
+  if (carouselRef.value) {
+    carouselRef.value.removeEventListener('mouseenter', stopCarousel)
+    carouselRef.value.removeEventListener('mouseleave', startCarousel)
   }
 })
 
@@ -709,11 +856,60 @@ const getCategoryName = (categoryId) => {
 const viewWorkDetails = (work) => {
   selectedWork.value = work
   showWorkDetails.value = true
+  // 延迟一点检查收藏状态，确保store已经准备好
+  setTimeout(() => {
+    checkFavoriteStatus()
+  }, 100)
 }
 
 const closeWorkDetails = () => {
   showWorkDetails.value = false
   selectedWork.value = null
+  isFavorited.value = false
+}
+
+const isFavorited = ref(false)
+
+const checkFavoriteStatus = () => {
+  if (selectedWork.value && store) {
+    // 尝试多种方式获取收藏列表
+    let collection = []
+    if (store.getters && store.getters.getCollection) {
+      collection = store.getters.getCollection()
+    } else if (store.state && store.state.collection) {
+      collection = store.state.collection
+    } else if (store.getCollectItems) {
+      collection = store.getCollectItems()
+    }
+    
+    // 检查当前作品是否在收藏列表中
+    isFavorited.value = collection.some(item => item.id === selectedWork.value.id)
+  }
+}
+
+const toggleFavorite = () => {
+  if (selectedWork.value && store) {
+    if (isFavorited.value) {
+      // 取消收藏
+      store.removeFromCollect(selectedWork.value.id)
+      flash('作品已从收藏中移除！')
+      isFavorited.value = false
+    } else {
+      // 添加收藏
+      const workToAdd = {
+        id: selectedWork.value.id,
+        title: selectedWork.value.title,
+        image: selectedWork.value.image,
+        artist: selectedWork.value.artist,
+        category: getCategoryName(selectedWork.value.categoryId),
+        type: '作品'
+      }
+      
+      store.addToCollect(workToAdd)
+      flash('作品已成功添加到收藏！')
+      isFavorited.value = true
+    }
+  }
 }
 
 const viewExhibitionDetails = (exhibitionId) => {
@@ -945,9 +1141,9 @@ const viewExhibitionDetails = (exhibitionId) => {
 .modal-content {
   background-color: #fff;
   border-radius: 0.5rem;
-  max-width: 900px;
+  max-width: 1200px;
   width: 100%;
-  max-height: 90vh;
+  max-height: 95vh;
   overflow-y: auto;
   position: relative;
 }
@@ -986,10 +1182,42 @@ const viewExhibitionDetails = (exhibitionId) => {
   width: 50%;
 }
 
-.work-detail-image img {
+.magnifier-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+
+.magnifier-container img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.magnifier-lens {
+  position: absolute;
+  border: 2px solid var(--primary-color);
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+  z-index: 5;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.magnifier-result {
+  position: absolute;
+  border: 2px solid var(--primary-color);
+  border-radius: 0.5rem;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 10;
+  width: 250px;
+  height: 250px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .work-detail-info {
@@ -1040,6 +1268,56 @@ const viewExhibitionDetails = (exhibitionId) => {
   gap: 0.5rem;
 }
 
+.favorite-btn {
+  margin-top: 2rem;
+  padding: 1rem 2rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 5rem;
+  font-size: 1.6rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-family: 'STZhongsong', 'SimSun', serif;
+}
+
+.favorite-btn:hover {
+  background-color: var(--primary-light);
+  transform: translateY(-3px);
+  box-shadow: 0 0.5rem 1.5rem rgba(36, 77, 77, 0.2);
+}
+
+.favorite-btn i {
+  font-size: 1.8rem;
+  transition: transform 0.3s ease;
+}
+
+.favorite-btn:hover i {
+  transform: scale(1.2);
+  color: var(--warning-color);
+}
+
+.favorite-btn.favorited {
+  background-color: var(--warning-color);
+}
+
+.favorite-btn.favorited i {
+  color: white;
+}
+
+.favorite-btn.favorited:hover {
+  background-color: var(--warning-color);
+  opacity: 0.9;
+}
+
+.favorite-btn.favorited:hover i {
+  color: white;
+  transform: scale(1.2) rotate(15deg);
+}
+
 /* 轮播图样式 */
 .carousel-section {
   width: 100%;
@@ -1060,6 +1338,7 @@ const viewExhibitionDetails = (exhibitionId) => {
   width: 100%;
   height: 100%;
   transition: transform 0.5s ease-in-out;
+  transform: translateX(0);
 }
 
 .carousel-slide {
@@ -1072,6 +1351,11 @@ const viewExhibitionDetails = (exhibitionId) => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.carousel-slide:hover img {
+  transform: scale(1.03); /* 鼠标悬停时图片轻微放大 */
+  transition: transform 0.5s ease-in-out;
 }
 
 .carousel-caption {
@@ -1332,6 +1616,32 @@ const viewExhibitionDetails = (exhibitionId) => {
   }
 }
 
+/* 响应式设计 - 中等屏幕 */
+@media (max-width: 1200px) {
+  .modal-content {
+    max-width: 90vw;
+  }
+  
+  .modal-body {
+    flex-direction: column;
+  }
+  
+  .work-detail-image {
+    width: 100%;
+    height: 400px;
+  }
+  
+  .work-detail-info {
+    width: 100%;
+    padding: 3rem;
+  }
+  
+  .magnifier-result {
+    width: 200px;
+    height: 200px;
+  }
+}
+
 /* 响应式设计 - 平板 */
 @media (max-width: 991px) {
   .carousel-container {
@@ -1394,12 +1704,16 @@ const viewExhibitionDetails = (exhibitionId) => {
   
   .work-detail-image {
     width: 100%;
-    height: 300px;
+    height: 350px;
   }
   
   .work-detail-info {
     width: 100%;
     padding: 2.5rem;
+  }
+  
+  .magnifier-result {
+    display: none; /* 平板端隐藏放大结果，避免遮挡 */
   }
 }
 
@@ -1511,6 +1825,26 @@ const viewExhibitionDetails = (exhibitionId) => {
   
   .modal-overlay {
     padding: 1rem;
+  }
+  
+  .work-detail-image {
+    height: 280px;
+  }
+  
+  .magnifier-result {
+    display: block; /* 手机端重新显示放大镜 */
+    width: 180px;
+    height: 180px;
+    position: fixed; /* 使用固定定位避免布局问题 */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1001; /* 确保在最上层 */
+  }
+  
+  .magnifier-lens {
+    width: 80px;
+    height: 80px;
   }
 }
 
@@ -1624,7 +1958,17 @@ const viewExhibitionDetails = (exhibitionId) => {
   }
   
   .work-detail-image {
-    height: 200px;
+    height: 220px;
+  }
+  
+  .magnifier-result {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .magnifier-lens {
+    width: 60px;
+    height: 60px;
   }
   
   .work-detail-info {

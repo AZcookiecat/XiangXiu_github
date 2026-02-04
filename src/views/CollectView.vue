@@ -8,26 +8,45 @@
 
     <!-- 主要内容区域 -->
     <div v-if="currentUser" class="collect-content">
+      <!-- 分类切换标签 -->
+      <div class="category-tabs">
+        <button 
+          :class="['tab-btn', { active: activeCategory === 'works' }]"
+          @click="activeCategory = 'works'"
+        >
+          作品收藏
+        </button>
+        <button 
+          :class="['tab-btn', { active: activeCategory === 'products' }]"
+          @click="activeCategory = 'products'"
+        >
+          商品收藏
+        </button>
+      </div>
+      
       <!-- 收藏作品网格 -->
-      <div v-if="collection.length > 0" class="collection-grid">
-        <div v-for="item in collection" :key="item.id" class="collection-item">
+      <div v-if="filteredCollection.length > 0" class="collection-grid">
+        <div v-for="item in filteredCollection" :key="item.id" class="collection-item">
           <div class="item-image">
-            <img :src="item.image_url" :alt="item.name" loading="lazy">
+            <img :src="item.image_url || item.image" :alt="item.name || item.title" loading="lazy">
+            <div class="item-type-badge" :class="{ 'work': isWork(item), 'product': isProduct(item) }">
+              {{ isWork(item) ? '作品' : '商品' }}
+            </div>
             <button @click="removeFromCollection(item.id)" class="remove-btn">
               <i class="fas fa-heart-broken"></i>
             </button>
           </div>
           <div class="item-info">
             <h4><router-link :to="{ name: 'product', params: { id: item.id } }">
-              {{ item.name }}
+              {{ item.name || item.title }}
             </router-link></h4>
-            <p class="price">￥{{ item.price }}</p>
+            <p v-if="item.price" class="price">￥{{ item.price }}</p>
             <div class="item-details">
               <span class="category">{{ item.category || '非遗作品' }}</span>
               <span class="collect-date">{{ formatDate(item.collectedAt) }}</span>
             </div>
           </div>
-          <div class="action-buttons">
+          <div v-if="isProduct(item)" class="action-buttons">
             <button @click="addToCart(item)" class="add-to-cart-btn">
               <i class="fas fa-shopping-cart"></i> 加入购物车
             </button>
@@ -40,11 +59,21 @@
         <div class="empty-icon">
           <i class="fas fa-heart"></i>
         </div>
-        <h4>暂无收藏作品</h4>
-        <p>快去浏览我们的数字化非遗作品，收藏您喜爱的作品吧！</p>
-        <router-link to="/exhibition" class="explore-btn">
-          浏览作品
-        </router-link>
+        <h4>
+          {{ activeCategory === 'works' ? '暂无收藏作品' : '暂无收藏商品' }}
+        </h4>
+        <p>
+          {{ activeCategory === 'works' ? '快去浏览我们的数字化非遗作品，收藏您喜爱的作品吧！' : 
+             '快去浏览我们的非遗湘绣和周边，收藏您喜爱的商品吧！' }}
+        </p>
+        <div class="empty-actions">
+          <router-link v-if="activeCategory === 'works'" to="/exhibition" class="explore-btn">
+            浏览作品
+          </router-link>
+          <router-link v-else to="/shop" class="explore-btn">
+            浏览商品
+          </router-link>
+        </div>
       </div>
     </div>
     
@@ -79,7 +108,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, inject } from 'vue'
+import { ref, onMounted, inject, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 const flash = inject('flash')
@@ -89,9 +118,20 @@ const router = useRouter()
 // 状态管理
 const currentUser = ref(null)
 const collection = ref([])
+const activeCategory = ref('works') // 'works', 'products'
 // 弹窗状态
 const showConfirmDialog = ref(false)
 const itemToRemove = ref(null)
+
+// 计算属性 - 过滤收藏项
+const filteredCollection = computed(() => {
+  if (activeCategory.value === 'works') {
+    return collection.value.filter(item => isWork(item))
+  } else if (activeCategory.value === 'products') {
+    return collection.value.filter(item => isProduct(item))
+  }
+  return collection.value
+})
 
 // 计算属性 - 检查是否登录
 const isLoggedIn = () => store.isAuthenticated()
@@ -118,6 +158,10 @@ const loadCollection = () => {
     
     // 直接使用真实收藏数据，不添加模拟数据
     collection.value = [...collectItems]
+    
+    // 保存收藏数量到localStorage供个人中心使用
+    localStorage.setItem('userCollections', JSON.stringify(collectItems))
+    console.log('收藏数量已同步到localStorage:', collectItems.length)
   }
 }
 
@@ -132,6 +176,11 @@ const confirmRemove = () => {
   if (itemToRemove.value) {
     store.removeFromCollect(itemToRemove.value)
     collection.value = [...store.getCollectItems()]  // 修正方法名
+    
+    // 更新localStorage中的收藏数据
+    localStorage.setItem('userCollections', JSON.stringify(collection.value))
+    console.log('移除后收藏数量已更新:', collection.value.length)
+    
     flash('已从收藏中移除!')
   }
   showConfirmDialog.value = false
@@ -142,6 +191,27 @@ const confirmRemove = () => {
 const cancelRemove = () => {
   showConfirmDialog.value = false
   itemToRemove.value = null
+}
+
+// 判断是否为作品
+const isWork = (item) => {
+  if (item.type === '作品') return true
+  if (item.category) {
+    return item.category.includes('作品') || item.category.includes('artwork') || item.category.includes('非遗')
+  }
+  // 如果没有category但有artist字段，也视为作品
+  if (item.artist) return true
+  return false
+}
+
+// 判断是否为商品
+const isProduct = (item) => {
+  if (item.type === '商品') return true
+  if (item.category) {
+    return item.category.includes('商品') || item.category.includes('product') || item.category.includes('文创')
+  }
+  // 如果有price字段，视为商品
+  return item.price !== undefined
 }
 
 // 从收藏中移除
@@ -215,6 +285,67 @@ onMounted(() => {
   overflow: hidden;
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
   padding: 4rem 9%;
+}
+
+/* 分类标签样式 */
+.category-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 3rem;
+  border-bottom: 0.1rem solid var(--primary-light);
+  padding-bottom: 1rem;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.6rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 0.5rem 0.5rem 0 0;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.tab-btn:hover {
+  color: var(--primary-color);
+  background-color: var(--primary-lighter);
+}
+
+.tab-btn.active {
+  color: var(--primary-color);
+  font-weight: 600;
+  background-color: var(--primary-lighter);
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1.1rem;
+  left: 0;
+  width: 100%;
+  height: 0.3rem;
+  background-color: var(--primary-color);
+}
+
+/* 空状态操作按钮容器 */
+.empty-actions {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.explore-btn.secondary {
+  background-color: #f5f5f5;
+  color: var(--primary-color);
+  border: 0.1rem solid var(--primary-light);
+}
+
+.explore-btn.secondary:hover {
+  background-color: var(--primary-lighter);
+  color: var(--primary-color);
 }
 
 /* 收藏网格布局 */
@@ -291,6 +422,38 @@ onMounted(() => {
   background-color: var(--danger-color);
   color: white;
   transform: scale(1.1);
+}
+
+/* 收藏项类型标识 */
+.item-type-badge {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: white;
+  z-index: 5;
+}
+
+.item-type-badge.work {
+  background-color: var(--primary-color);
+}
+
+.item-type-badge.product {
+  background-color: var(--warning-color);
+}
+
+/* 作品标签 */
+.work-tag {
+  font-size: 1.4rem;
+  color: var(--primary-color);
+  background-color: var(--primary-lighter);
+  display: inline-block;
+  padding: 0.3rem 1rem;
+  border-radius: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 /* 收藏项信息 */
@@ -387,12 +550,12 @@ onMounted(() => {
 }
 
 .confirm-btn {
-  background-color: var(--danger-color);
+  background-color: #dc3545; /* 固定红色背景 */
   color: white;
 }
 
 .confirm-btn:hover {
-  background-color: #c82333;
+  background-color: #c82333; /*  hover时稍微深一点的红色 */
   transform: translateY(-2px);
   box-shadow: 0 0.5rem 1rem rgba(220, 53, 69, 0.2);
 }
@@ -577,6 +740,21 @@ onMounted(() => {
     padding: 3rem 5%;
   }
   
+  .category-tabs {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  
+  .tab-btn {
+    text-align: center;
+    border-radius: 0.5rem;
+  }
+  
+  .tab-btn.active::after {
+    display: none;
+  }
+  
   .collection-grid {
     grid-template-columns: 1fr;
   }
@@ -584,6 +762,16 @@ onMounted(() => {
   .empty-collection,
   .not-logged-in {
     padding: 6rem 2rem;
+  }
+  
+  .empty-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .explore-btn {
+    width: 200px;
+    text-align: center;
   }
 }
 

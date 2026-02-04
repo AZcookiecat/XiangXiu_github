@@ -15,6 +15,7 @@
     <!-- 侧边导航栏开始 -->
     <div class="icons">
       <div id="menu-btn" class="fas fa-bars" @click="toggleMenu"></div>
+      <div id="collect-btn" class="fas fa-heart" @click="goToCollect"></div>
       <div id="cart-btn" class="fas fa-shopping-cart" @click="goToCart"></div>
       <div id="login-btn" class="fas fa-user" @click="toggleLogin"></div>
     </div>
@@ -36,9 +37,9 @@
       <router-link to="/blog">博客</router-link>
       <router-link to="/team">团队</router-link>
       <router-link to="/contact">联系我们</router-link>
-      <router-link to="/chat">AI助手</router-link>
+      <router-link to="/chatBot">AI助手</router-link>
       <router-link to="/user-center">我的</router-link>
-      <router-link to="/collect">我的收藏</router-link>
+      <router-link to="/collect">收藏</router-link>
       <router-link to="/cart">购物车</router-link>
     </nav>
 
@@ -83,7 +84,12 @@
           <p class="user-detail">邮箱：{{ user.email }}</p>
         </div>
         <div class="action-buttons">
-          <button class="btn primary-btn" @click="logout">退出登录</button>
+          <button class="btn secondary-btn" @click="goToProfile">
+            <i class="fas fa-user-circle"></i> 我的个人中心
+          </button>
+          <button class="btn primary-btn" @click="logout">
+            <i class="fas fa-sign-out-alt"></i> 退出登录
+          </button>
         </div>
       </div>
       <div v-else>
@@ -163,6 +169,15 @@ const goToCart = () => {
     toggleLogin() // 显示登录面板
   } else {
     router.push('/cart')
+  }
+}
+
+const goToCollect = () => {
+  if (!isLoggedIn.value) {
+    flash('请先登录！', 'warning')
+    toggleLogin() // 显示登录面板
+  } else {
+    router.push('/collect')
   }
 }
 
@@ -253,6 +268,11 @@ const login = async () => {
   }
 }
 
+const goToProfile = () => {
+  router.push('/user-center')
+  closeAll()
+}
+
 const logout = () => {
   store.logout()
   flash('登出成功！')
@@ -280,6 +300,9 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 导入小篆字体 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap');
+
 /* 头部导航样式 - 符合project项目设计 */
 .header {
   position: fixed;
@@ -299,12 +322,14 @@ onUnmounted(() => {
 /* Logo样式 */
 .logo {
   color: var(--primary-color);
-  font-size: 2.5rem;
+  font-size: 3rem;
   font-weight: 700;
   text-decoration: none;
   display: flex;
   align-items: center;
   transition: transform 0.3s ease;
+  font-family: 'Noto Serif SC', 'STXingkai', '华文行楷', serif;
+  /* 优先使用Noto Serif SC， fallback到华文行楷等字体 */
 }
 
 .logo:hover {
@@ -476,24 +501,7 @@ onUnmounted(() => {
   box-shadow: 0 0.5rem 1.5rem rgba(36, 77, 77, 0.2);
 }
 
-.navbar a::before {
-  content: '';
-  position: absolute;
-  left: -2rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 1rem;
-  height: 1rem;
-  background-color: var(--warning-color);
-  border-radius: 50%;
-  opacity: 0;
-  transition: all 0.3s ease;
-}
 
-.navbar a:hover::before {
-  left: 1rem;
-  opacity: 1;
-}
 
 /* 购物车样式 */
 .shopping-cart {
@@ -579,6 +587,19 @@ onUnmounted(() => {
   width: 100%;
   max-width: 300px;
   margin: 0 auto;
+}
+
+.action-buttons .btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  font-size: 1.6rem;
+  padding: 1.4rem 2rem;
+}
+
+.action-buttons .btn i {
+  font-size: 1.8rem;
 }
 
 /* 登录表单内容样式 */
@@ -820,14 +841,17 @@ onUnmounted(() => {
 }
   /* 用户问候语样式 */
   .user-greeting {
-    text-align: center;
-    padding: 1rem;
-    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 0 1rem;
   }
   
   .greeting-text {
     color: var(--primary-color);
     font-size: 1.4rem;
     font-weight: 500;
+    text-align: center;
   }
 </style>

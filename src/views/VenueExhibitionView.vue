@@ -179,6 +179,9 @@ window.addEventListener('keydown', (e) => {
 .venue-exhibition-container {
   min-height: 100vh;
   background-color: var(--background-color);
+  max-width: 1200px;
+  margin: 0 auto;
+  margin-top: 100px; 
 }
 
 /* 标题区样式 */
@@ -188,7 +191,6 @@ window.addEventListener('keydown', (e) => {
   align-items: center;
   justify-content: space-between;
   padding: 2rem 9%;
-  margin-bottom: 0;
 }
 
 .heading h3 {

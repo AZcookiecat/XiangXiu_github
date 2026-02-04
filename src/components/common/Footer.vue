@@ -2,28 +2,26 @@
   <footer class="footer">
     <div class="box-container">
       <div class="box">
-        <h3>快速链接</h3>
-        <router-link to="/"> <i class="fas fa-arrow-right"></i> 首页home</router-link>
-        <router-link to="/shop"> <i class="fas fa-arrow-right"></i> 商城shop</router-link>
-        <router-link to="/cart"> <i class="fas fa-arrow-right"></i> 购物车cart</router-link>
-        <router-link to="peripheral"> <i class="fas fa-arrow-right"></i> 周边periphery</router-link>
-        <router-link to="/team"> <i class="fas fa-arrow-right"></i> 团队team</router-link>
-        <router-link to="/blog"> <i class="fas fa-arrow-right"></i> 博客blog</router-link>
-        <a href="https://map.baidu.com/poi//@12570968.17,3257050.89,11.19z?info_merge=1&ugc_type=3&ugc_ver=1&querytype=detailConInfo&searchseo=1&uid=8762a323fa3e511cae080f4f" target="_blank">
-          <i class="fas fa-arrow-right"></i> 联系contact
-        </a>
+        <h3>湘绣展示</h3>
+        <router-link to="/exhibition"> <i class="fas fa-arrow-right"></i> 作品欣赏</router-link>
+        <router-link to="/venue-exhibition"> <i class="fas fa-arrow-right"></i> 虚拟展馆</router-link>
+        <router-link to="/venue-tour"> <i class="fas fa-arrow-right"></i> 数字化展厅</router-link>
+        <router-link to="/knowledge-graph"> <i class="fas fa-arrow-right"></i> 湘绣知识图谱</router-link>
+        <router-link to="/blog"> <i class="fas fa-arrow-right"></i> 湘绣博客</router-link>
       </div>
 
       <div class="box">
-        <h3>浏览链接</h3>
-        <router-link to="/register"> <i class="fas fa-arrow-right"></i> 注册register</router-link>
-        <router-link to="/venue-exhibition"> <i class="fas fa-arrow-right"></i> 场馆showroom</router-link>
-        <router-link to="/exhibition"> <i class="fas fa-arrow-right"></i> 作品works</router-link>
-        <router-link to="/collect"> <i class="fas fa-arrow-right"></i> 收藏collect</router-link>
+        <h3>湘绣购物</h3>
+        <router-link to="/shop"> <i class="fas fa-arrow-right"></i> 非遗商品</router-link>
+        <router-link to="/peripheral"> <i class="fas fa-arrow-right"></i> 湘绣周边</router-link>
+        <router-link to="/collect"> <i class="fas fa-arrow-right"></i> 我的收藏</router-link>
+        <router-link to="/cart"> <i class="fas fa-arrow-right"></i> 购物车</router-link>
       </div>
 
       <div class="box">
-        <h3>联系我们</h3>
+        <h3>关于我们</h3>
+        <router-link to="/team"> <i class="fas fa-arrow-right"></i> 湘绣元生湘缘团队</router-link>
+        <router-link to="/contact"> <i class="fas fa-arrow-right"></i> 联系我们</router-link>
         <a href="https://map.baidu.com/poi//@12570968.17,3257050.89,11.19z?info_merge=1&ugc_type=3&ugc_ver=1&querytype=detailConInfo&searchseo=1&uid=8762a323fa3e511cae080f4f" target="_blank">
           <i class="fas fa-map-marker-alt"></i>一键查询地址：湖南省长沙市岳麓区岳麓大道湖南工商大学
         </a>

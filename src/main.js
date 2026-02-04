@@ -40,7 +40,7 @@ export const store = {
     }
     return this.state.user
   },
-  
+
   // 更新用户信息
   updateUser(user) {
     // 这是UserCenterView.vue中调用的方法
@@ -62,7 +62,7 @@ export const store = {
     if (existingItem) {
       existingItem.quantity += quantity
     } else {
-      this.state.cartItems.push({...item, quantity})
+      this.state.cartItems.push({ ...item, quantity })
     }
     this.saveCart()
   },
@@ -133,7 +133,7 @@ initUsers()
 router.beforeEach((to, from, next) => {
   // 需要登录的路由列表
   const requiresAuth = ['cart', 'collect']
-  
+
   if (requiresAuth.includes(to.name) && !store.isAuthenticated()) {
     // 跳转到登录页面，并记录当前页面以便登录后返回
     next({ name: 'login', query: { redirect: to.path } })
