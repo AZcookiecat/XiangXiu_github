@@ -53,7 +53,6 @@ onMounted(() => {
       <RouterView />
     </main>
     <Footer />
-    <ChatBot />
   </div>
 </template>
 

@@ -2,44 +2,79 @@
   <div class="product-container">
     <section class="heading">
       <h3>产品详情</h3>
-      <p> <router-link to="/">首页</router-link> / <router-link to="/shop">商城</router-link> / <span>{{ product.name || '产品' }}</span> </p>
+      <p> <router-link to="/">首页</router-link> / <router-link to="/shop">商城</router-link> / <span>{{ product?.name || '产品' }}</span> </p>
     </section>
 
     <div v-if="product" class="product-detail">
-      <div class="image-container">
-        <img :src="product.image_url" :alt="product.name" loading="lazy">
+      <!-- 图片展示部分 -->
+      <div class="image-section">
+        <!-- 主图 -->
+        <div class="main-image">
+          <img :src="product.image_url" :alt="product.name" loading="lazy">
+        </div>
+        <!-- 缩略图 -->
+        <div class="thumbnail-images">
+          <div v-for="(img, index) in productImages" :key="index" class="thumbnail">
+            <img :src="img" :alt="product.name + index" loading="lazy">
+          </div>
+        </div>
       </div>
       
+      <!-- 商品信息部分 -->
       <div class="product-info">
-        <h3>{{ product.name }}</h3>
+        <h1 class="product-name">{{ product.name }}</h1>
+        
+        <div class="price-section">
+          <span class="price">￥{{ product.price }}</span>
+        </div>
+        
         <!-- 评分星星 -->
-        <div class="stars">
-          <i class="fas fa-star"></i>
-          <i class="fas fa-star"></i>
-          <i class="fas fa-star"></i>
-          <i class="fas fa-star"></i>
-          <i class="far fa-star"></i>
-          <span> (50) </span>
+        <div class="rating">
+          <div class="stars">
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+            <i class="far fa-star"></i>
+          </div>
+          <span class="rating-text">4.6 (50)</span>
         </div>
         <!-- 评分星星结束 -->
         
-        <div class="price">￥{{ product.price }}</div>
-        
-        <div class="stock">库存: {{ product.stock }}</div>
-        
         <div class="description">
-          <p>这是一个精美的湘绣作品，采用传统工艺精心制作，展现了湘绣的精湛技艺和独特魅力。</p>
+          <p>{{ product.description || '这是一个精美的湘绣作品，采用传统工艺精心制作，展现了湘绣的精湛技艺和独特魅力。' }}</p>
         </div>
         
-        <div v-if="isLoggedIn" class="action-buttons">
+        <div class="action-section">
+          <!-- 数量控制 -->
           <div class="quantity">
             <button @click="decreaseQuantity" :disabled="quantity <= 1">-</button>
-            <input type="number" v-model="quantity" min="1" :max="product.stock">
+            <span>{{ quantity }}</span>
             <button @click="increaseQuantity" :disabled="quantity >= product.stock">+</button>
           </div>
           
-          <button @click="addToCart(product)" class="add-to-cart">加入购物车</button>
-          <button @click="addToCollection(product)" class="add-to-collection">添加收藏</button>
+          <!-- 按钮组 -->
+          <div class="buttons">
+            <button @click="addToCart(product)" class="buy-now">加入购物车</button>
+          </div>
+        </div>
+        
+        <!-- 配送信息 -->
+        <div class="delivery-info">
+          <p>3-5天免费配送 | 无理由退换货 | 365天质保</p>
+        </div>
+        
+        <!-- 操作按钮 -->
+        <div class="action-buttons">
+          <button @click="addToCollection(product)" class="favorite-btn">
+            <i class="far fa-heart"></i> 加入收藏夹
+          </button>
+          <div class="share-buttons">
+            <button class="share-btn"><i class="fas fa-share-alt"></i></button>
+            <button class="share-btn"><i class="fab fa-weixin"></i></button>
+            <button class="share-btn"><i class="fab fa-weibo"></i></button>
+            <button class="share-btn"><i class="fab fa-qq"></i></button>
+          </div>
         </div>
       </div>
     </div>
@@ -60,9 +95,10 @@ const route = useRoute()
 // 状态管理
 const product = ref(null)
 const quantity = ref(1)
+const productImages = ref([])
 
 // 计算属性
-const isLoggedIn = computed(() => store.isAuthenticated())
+const isLoggedIn = computed(() => store?.isAuthenticated?.() || false)
 
 // 方法
 const decreaseQuantity = () => {
@@ -78,18 +114,18 @@ const increaseQuantity = () => {
 }
 
 const addToCart = (selectedProduct) => {
-  if (isLoggedIn.value) {
+  if (isLoggedIn.value && store?.addToCart) {
     store.addToCart(selectedProduct, quantity.value)
-    flash('添加到购物车成功!')
+    flash?.('添加到购物车成功!')
   } else {
     router.push({ name: 'login', query: { redirect: `/product/${route.params.id}` } })
   }
 }
 
 const addToCollection = (selectedProduct) => {
-  if (isLoggedIn.value) {
+  if (isLoggedIn.value && store?.addToCollect) {
     store.addToCollect(selectedProduct)
-    flash('添加收藏成功!')
+    flash?.('添加收藏成功!')
   } else {
     router.push({ name: 'login', query: { redirect: `/product/${route.params.id}` } })
   }
@@ -155,8 +191,10 @@ onMounted(() => {
   const foundProduct = mockProducts.find(p => p.id === productId)
   if (foundProduct) {
     product.value = foundProduct
+    // 设置产品图片（使用相同图片作为示例）
+    productImages.value = Array(5).fill(foundProduct.image_url)
   } else {
-    flash('产品不存在!', 'error')
+    flash?.('产品不存在!', 'error')
     router.push('/shop')
   }
 })
@@ -212,36 +250,55 @@ onMounted(() => {
 .product-detail {
   display: flex;
   gap: 5rem;
-  align-items: flex-start;
   padding: 5rem 9%;
   background-color: #fff;
   flex-wrap: wrap;
 }
 
-/* 图片容器样式 */
-.image-container {
+/* 图片展示部分 */
+.image-section {
   flex: 1;
   min-width: 300px;
   max-width: 500px;
-  position: relative;
-  transition: all 0.3s ease;
 }
 
-.image-container:hover {
-  transform: translateY(-10px);
+/* 主图 */
+.main-image {
+  margin-bottom: 2rem;
 }
 
-.image-container img {
+.main-image img {
   width: 100%;
   height: auto;
   border-radius: 0.5rem;
-  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.15);
-  transition: transform 0.5s ease;
-  border: 0.2rem solid #fff;
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
 }
 
-.image-container:hover img {
-  transform: scale(1.05);
+/* 缩略图 */
+.thumbnail-images {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+}
+
+.thumbnail {
+  flex: 0 0 auto;
+  width: 80px;
+  border: 2px solid transparent;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.thumbnail:hover {
+  border-color: var(--primary-color);
+}
+
+.thumbnail img {
+  width: 100%;
+  height: auto;
+  border-radius: 0.3rem;
 }
 
 /* 产品信息样式 */
@@ -249,190 +306,198 @@ onMounted(() => {
   flex: 1;
   min-width: 300px;
   max-width: 500px;
-  padding: 3rem;
-  background-color: #fff;
-  border-radius: 0.5rem;
-  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.05);
-  border: 0.1rem solid var(--primary-light);
 }
 
-.product-info h3 {
+/* 商品名称 */
+.product-name {
   font-size: 2.5rem;
   color: var(--secondary-color);
   margin-bottom: 1.5rem;
-  line-height: 1.3;
-  position: relative;
-  padding-bottom: 1rem;
-}
-
-.product-info h3::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 6rem;
-  height: 0.3rem;
-  background-color: var(--primary-color);
-  border-radius: 0.5rem;
-}
-
-/* 评分星星样式 */
-.product-info .stars {
-  color: #f39c12;
-  font-size: 1.8rem;
-  margin-bottom: 2rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.product-info .stars span {
-  color: var(--secondary-color);
-  margin-left: 1rem;
-  font-size: 1.4rem;
+  line-height: 1.2;
 }
 
 /* 价格样式 */
-.product-info .price {
-  font-size: 3rem;
-  color: var(--primary-color);
+.price-section {
+  margin-bottom: 1.5rem;
+}
+
+.price-section .price {
+  font-size: 2.8rem;
+  color: #e74c3c;
   font-weight: bold;
-  margin-bottom: 2rem;
-  padding: 1rem 0;
-  border-top: 0.1rem solid var(--primary-light);
-  border-bottom: 0.1rem solid var(--primary-light);
 }
 
-/* 库存样式 */
-.product-info .stock {
-  font-size: 1.5rem;
+/* 评分样式 */
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.rating .stars {
+  color: #f39c12;
+  font-size: 1.6rem;
+  display: flex;
+  gap: 0.3rem;
+}
+
+.rating .rating-text {
   color: var(--secondary-color);
-  margin-bottom: 2rem;
-  padding: 1rem 0;
-}
-
-.product-info .stock strong {
-  color: var(--primary-color);
+  font-size: 1.4rem;
 }
 
 /* 描述样式 */
-.product-info .description {
+.description {
   font-size: 1.6rem;
   color: var(--secondary-color);
-  line-height: 1.8;
-  margin-bottom: 3rem;
-  padding: 1.5rem;
-  background-color: rgba(36, 77, 77, 0.05);
-  border-radius: 0.5rem;
-  border-left: 0.4rem solid var(--primary-color);
+  line-height: 1.6;
+  margin-bottom: 2.5rem;
 }
 
-/* 操作按钮容器 */
-.product-info .action-buttons {
+/* 操作区域 */
+.action-section {
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2.5rem;
+  flex-wrap: wrap;
 }
 
 /* 数量控制样式 */
-.product-info .quantity {
+.quantity {
   display: flex;
   align-items: center;
-  width: fit-content;
-  margin-bottom: 1.5rem;
   background-color: #f9f9f9;
   border-radius: 0.5rem;
   overflow: hidden;
 }
 
-.product-info .quantity button {
-  width: 5rem;
-  height: 5rem;
-  background-color: var(--primary-light);
+.quantity button {
+  width: 40px;
+  height: 40px;
+  background-color: #f9f9f9;
   border: none;
   cursor: pointer;
-  font-size: 2rem;
-  color: var(--primary-color);
+  font-size: 1.8rem;
+  color: var(--secondary-color);
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.product-info .quantity button:hover:not(:disabled) {
-  background-color: var(--primary-color);
-  color: #fff;
-  transform: scale(1.05);
+.quantity button:hover:not(:disabled) {
+  background-color: #e0e0e0;
 }
 
-.product-info .quantity button:disabled {
+.quantity button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background-color: #e0e0e0;
-  color: #999;
 }
 
-.product-info .quantity input {
-  width: 8rem;
-  height: 5rem;
+.quantity span {
+  width: 60px;
+  height: 40px;
   text-align: center;
-  border: none;
-  outline: none;
-  font-size: 1.8rem;
-  font-weight: bold;
+  line-height: 40px;
+  font-size: 1.6rem;
   color: var(--secondary-color);
   background-color: #fff;
+  border-left: 1px solid #e0e0e0;
+  border-right: 1px solid #e0e0e0;
 }
 
-/* 加入购物车按钮 */
-.product-info .add-to-cart {
+/* 立即购买按钮 */
+.buttons {
+  flex: 1;
+  min-width: 200px;
+}
+
+.buy-now {
+  width: 100%;
   background-color: var(--primary-color);
   color: white;
   border: none;
-  padding: 1.5rem 2rem;
-  font-size: 1.8rem;
+  padding: 1.2rem;
+  font-size: 1.6rem;
   cursor: pointer;
   border-radius: 0.5rem;
   transition: all 0.3s ease;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
 }
 
-.product-info .add-to-cart:hover {
+.buy-now:hover {
   background-color: var(--primary-light);
-  transform: translateY(-3px);
-  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
 }
 
-/* 添加收藏按钮 */
-.product-info .add-to-collection {
+/* 配送信息 */
+.delivery-info {
+  margin-bottom: 2.5rem;
+  padding: 1.5rem;
+  background-color: #f9f9f9;
+  border-radius: 0.5rem;
+  font-size: 1.4rem;
+  color: var(--secondary-color);
+  line-height: 1.5;
+}
+
+/* 操作按钮 */
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+/* 收藏按钮 */
+.favorite-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   background-color: #fff;
-  color: var(--primary-color);
-  border: 0.2rem solid var(--primary-color);
-  padding: 1.5rem 2rem;
-  font-size: 1.8rem;
+  color: var(--secondary-color);
+  border: 1px solid #e0e0e0;
+  padding: 0.8rem 1.5rem;
+  font-size: 1.4rem;
   cursor: pointer;
   border-radius: 0.5rem;
   transition: all 0.3s ease;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1rem;
+}
+
+.favorite-btn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+/* 分享按钮组 */
+.share-buttons {
   display: flex;
-  align-items: center;
-  justify-content: center;
   gap: 1rem;
 }
 
-.product-info .add-to-collection:hover {
+.share-btn {
+  width: 40px;
+  height: 40px;
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.6rem;
+  color: var(--secondary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.share-btn:hover {
   background-color: var(--primary-color);
   color: #fff;
-  transform: translateY(-3px);
-  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.1);
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
 }
 
 /* 加载状态样式 */
@@ -467,9 +532,17 @@ onMounted(() => {
     gap: 3rem;
   }
   
-  .image-container,
+  .image-section,
   .product-info {
     max-width: 100%;
+  }
+  
+  .action-section {
+    justify-content: center;
+  }
+  
+  .buttons {
+    min-width: 250px;
   }
 }
 
@@ -487,26 +560,34 @@ onMounted(() => {
     padding: 2rem;
   }
   
-  .product-info {
-    padding: 2rem;
-  }
-  
-  .product-info h3 {
+  .product-name {
     font-size: 2.2rem;
   }
   
-  .product-info .price {
-    font-size: 2.8rem;
+  .price-section .price {
+    font-size: 2.5rem;
   }
   
-  .product-info .description {
+  .description {
     font-size: 1.4rem;
   }
   
-  .product-info .add-to-cart,
-  .product-info .add-to-collection {
-    font-size: 1.6rem;
-    padding: 1.2rem 1.5rem;
+  .action-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.5rem;
+  }
+  
+  .quantity {
+    align-self: flex-start;
+  }
+  
+  .buttons {
+    width: 100%;
+  }
+  
+  .action-buttons {
+    justify-content: center;
   }
 }
 
@@ -524,34 +605,50 @@ onMounted(() => {
     padding: 1.5rem;
   }
   
-  .product-info {
-    padding: 1.5rem;
-  }
-  
-  .product-info h3 {
+  .product-name {
     font-size: 2rem;
   }
   
-  .product-info .price {
-    font-size: 2.5rem;
+  .price-section .price {
+    font-size: 2.2rem;
   }
   
-  .product-info .quantity button {
-    width: 4rem;
-    height: 4rem;
+  .thumbnail {
+    width: 60px;
+  }
+  
+  .quantity button {
+    width: 35px;
+    height: 35px;
     font-size: 1.6rem;
   }
   
-  .product-info .quantity input {
-    width: 6rem;
-    height: 4rem;
-    font-size: 1.6rem;
+  .quantity span {
+    width: 50px;
+    height: 35px;
+    line-height: 35px;
+    font-size: 1.4rem;
   }
   
-  .product-info .add-to-cart,
-  .product-info .add-to-collection {
-    font-size: 1.5rem;
+  .buy-now {
+    font-size: 1.4rem;
     padding: 1rem;
+  }
+  
+  .delivery-info {
+    font-size: 1.2rem;
+    padding: 1.2rem;
+  }
+  
+  .favorite-btn {
+    font-size: 1.2rem;
+    padding: 0.6rem 1.2rem;
+  }
+  
+  .share-btn {
+    width: 35px;
+    height: 35px;
+    font-size: 1.4rem;
   }
   
   .loading {

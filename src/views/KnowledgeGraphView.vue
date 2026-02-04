@@ -3,7 +3,7 @@
     <!-- 页面头部 -->
     <div class="heading">
       <h3>湘绣知识图谱</h3>
-      <p>探索 <a href="/">首页</a> <span>/</span> 知识图谱</p>
+      <p><router-link to="/">首页</router-link> <span>/</span> 知识图谱</p>
     </div>
 
     <!-- 主要内容区域 -->
@@ -87,38 +87,48 @@
       </div>
 
       <!-- 详情展示区域 -->
-      <div v-if="selectedNode" class="node-details">
-        <div class="details-header">
-          <h4>{{ selectedNode.name }}</h4>
-          <button class="close-btn" @click="clearSelection">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="details-content">
-          <div class="detail-item">
-            <strong>类别:</strong> {{ selectedNode.category }}
+      <transition name="node-details">
+        <div v-if="selectedNode" class="node-details">
+          <div class="details-header">
+            <h4>{{ selectedNode.name }}</h4>
+            <button class="close-btn" @click="clearSelection">
+              <i class="fas fa-times"></i>
+            </button>
           </div>
-          <div class="detail-item">
-            <strong>描述:</strong> {{ selectedNode.description }}
-          </div>
-          <div v-if="selectedNode.related" class="detail-item">
-            <strong>相关概念:</strong>
-            <div class="related-concepts">
-              <span 
-                v-for="related in selectedNode.related" 
-                :key="related"
-                class="related-tag"
-                @click="highlightRelated(related)"
-              >
-                {{ related }}
-              </span>
+          <div class="details-content">
+            <div class="detail-item">
+              <strong>类别:</strong> {{ selectedNode.category }}
+            </div>
+            <div class="detail-item">
+              <strong>描述:</strong> {{ selectedNode.description }}
+            </div>
+            <div v-if="selectedNode.related" class="detail-item">
+              <strong>相关概念:</strong>
+              <div class="related-concepts">
+                <span 
+                  v-for="related in selectedNode.related" 
+                  :key="related"
+                  class="related-tag"
+                  @click="highlightRelated(related)"
+                >
+                  {{ related }}
+                </span>
+              </div>
+            </div>
+            <div v-if="selectedNode.imageUrl" class="detail-item">
+              <img :src="selectedNode.imageUrl" :alt="selectedNode.name" class="node-image" loading="lazy">
+            </div>
+            <div class="detail-actions">
+              <button @click="learnNode(selectedNode)" class="learn-btn">
+                <i class="fas fa-check"></i> 标记学习
+              </button>
+              <button class="resource-btn" @click="unlearnNode(selectedNode)">
+            <i class="fas fa-undo"></i> 取消标记
+              </button>
             </div>
           </div>
-          <div v-if="selectedNode.imageUrl" class="detail-item">
-            <img :src="selectedNode.imageUrl" :alt="selectedNode.name" class="node-image" loading="lazy">
-          </div>
         </div>
-      </div>
+      </transition>
 
       <!-- 信息卡片区域 -->
       <div class="info-cards">
@@ -152,6 +162,32 @@
       </div>
     </div>
 
+    <!-- 学习进度区域 -->
+      <div class="progress-container">
+        <h4>学习进度</h4>
+        <div class="progress-bar">
+          <div class="progress" :style="{ width: progress + '%' }"></div>
+        </div>
+        <p>{{ progress }}% 完成</p>
+        <div class="progress-stats">
+          <div class="stat-item">
+            <span class="stat-label">已学习节点</span>
+            <span class="stat-value">{{ learnedNodes.length }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">总节点数</span>
+            <span class="stat-value">{{ knowledgeGraphData.nodes.length }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">学习时长</span>
+            <span class="stat-value">{{ totalStudyTime }}分钟</span>
+          </div>
+        </div>
+        <button @click="scrollToTop" class="continue-btn">
+          <i class="fas fa-arrow-up"></i> 继续学习
+        </button>
+      </div>
+
     <!-- 知识图谱简介 -->
     <div class="graph-intro">
       <h3>关于湘绣知识图谱</h3>
@@ -171,6 +207,32 @@ const selectedNode = ref(null)
 const graphContainer = ref(null)
 const graphSvg = ref(null)
 const zoomLevel = ref(1)
+
+// 学习进度
+const progress = ref(0)
+const learnedNodes = ref([])
+const totalStudyTime = ref(0)
+
+// 从localStorage加载学习记录
+const loadLearningProgress = () => {
+  const saved = localStorage.getItem('knowledgeGraphProgress')
+  if (saved) {
+    const data = JSON.parse(saved)
+    learnedNodes.value = data.learnedNodes || []
+    totalStudyTime.value = data.totalStudyTime || 0
+    updateProgress()
+  }
+}
+
+// 保存学习记录到localStorage
+const saveLearningProgress = () => {
+  const data = {
+    learnedNodes: learnedNodes.value,
+    totalStudyTime: totalStudyTime.value,
+    timestamp: new Date().toISOString()
+  }
+  localStorage.setItem('knowledgeGraphProgress', JSON.stringify(data))
+}
 
 // 知识图谱数据
 const knowledgeGraphData = {
@@ -658,6 +720,73 @@ const handleNodeClick = (node) => {
   selectedNode.value = { ...node, ...nodeDetails[node.id] }
 }
 
+// 学习节点
+const learnNode = (node) => {
+  if (!learnedNodes.value.includes(node.id)) {
+    learnedNodes.value.push(node.id)
+    totalStudyTime.value += 5 // 假设每个节点学习5分钟
+    updateProgress()
+    saveLearningProgress() // 保存学习记录
+    console.log(`已学习节点: ${node.name}`)
+    // 更新节点样式
+    updateNodeStyle(node)
+  }
+}
+
+// 取消学习节点
+const unlearnNode = (node) => {
+  const index = learnedNodes.value.indexOf(node.id)
+  if (index > -1) {
+    learnedNodes.value.splice(index, 1)
+    totalStudyTime.value -= 5
+    updateProgress()
+    saveLearningProgress() // 保存学习记录
+    console.log(`已取消学习节点: ${node.name}`)
+    // 更新节点样式
+    updateNodeStyle(node)
+  }
+}
+
+// 更新学习进度
+const updateProgress = () => {
+  const totalNodes = knowledgeGraphData.nodes.length
+  if (totalNodes > 0) {
+    progress.value = Math.round((learnedNodes.value.length / totalNodes) * 100)
+  }
+}
+
+// 更新节点样式
+const updateNodeStyle = (node) => {
+  // 更新当前节点样式
+  if (graphSvg.value) {
+    const ns = 'http://www.w3.org/2000/svg'
+    const nodeElements = graphSvg.value.querySelectorAll('.node')
+    nodeElements.forEach(g => {
+      const circle = g.querySelector('circle')
+      const text = g.querySelector('text')
+      if (text && text.textContent === node.name) {
+        if (learnedNodes.value.includes(node.id)) {
+          // 已学习的节点添加黄色边框
+          circle.setAttribute('filter', 'drop-shadow(0 0 10px #FFD700)')
+        } else {
+          // 未学习的节点恢复默认样式
+          circle.removeAttribute('stroke')
+          circle.removeAttribute('stroke-width')
+          circle.removeAttribute('filter')
+        }
+      }
+    })
+  }
+}
+
+// 滚动到顶部
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
+}
+
 // 清除选中状态
 const clearSelection = () => {
   selectedNode.value = null
@@ -691,8 +820,86 @@ const handleSearch = () => {
 
 // 按类别筛选
 const filterByCategory = () => {
-  // 这里可以实现根据类别筛选节点的功能
-  // 为了简化，我们可以重新绘制图谱，只显示选中类别的节点
+  let filteredNodes = knowledgeGraphData.nodes;
+  let filteredLinks = knowledgeGraphData.links;
+
+  if (selectedCategory.value !== '') {
+    // 筛选出符合类别的节点，并保留湘绣大节点
+    filteredNodes = knowledgeGraphData.nodes.filter(node => 
+      node.category === selectedCategory.value || node.name === '湘绣'
+    );
+    const filteredNodeIds = new Set(filteredNodes.map(node => node.id));
+    // 只保留两端节点都在筛选结果中的边
+    filteredLinks = knowledgeGraphData.links.filter(link => 
+      filteredNodeIds.has(link.source) && filteredNodeIds.has(link.target)
+    );
+  }
+
+  // 创建临时筛选后的图谱数据
+  const filteredGraphData = {
+    nodes: filteredNodes,
+    links: filteredLinks
+  };
+
+  // 重新绘制简化版图谱
+  const svg = graphSvg.value;
+  if (!svg) return;
+  svg.innerHTML = '';
+  
+  const width = graphContainer.value.clientWidth;
+  const height = graphContainer.value.clientHeight;
+  
+  svg.setAttribute('width', width);
+  svg.setAttribute('height', height);
+  
+  const ns = 'http://www.w3.org/2000/svg';
+  
+  // 绘制连接线
+  filteredGraphData.links.forEach(link => {
+    const sourceNode = filteredGraphData.nodes.find(n => n.id === link.source);
+    const targetNode = filteredGraphData.nodes.find(n => n.id === link.target);
+    
+    if (sourceNode && targetNode) {
+      const line = document.createElementNS(ns, 'line');
+      line.setAttribute('x1', sourceNode.x);
+      line.setAttribute('y1', sourceNode.y);
+      line.setAttribute('x2', targetNode.x);
+      line.setAttribute('y2', targetNode.y);
+      line.setAttribute('stroke', '#ddd');
+      line.setAttribute('stroke-width', '2');
+      line.setAttribute('opacity', '0.7');
+      line.classList.add('link');
+      svg.appendChild(line);
+    }
+  });
+  
+  // 绘制节点
+  filteredGraphData.nodes.forEach(node => {
+    const g = document.createElementNS(ns, 'g');
+    g.setAttribute('transform', `translate(${node.x},${node.y})`);
+    g.classList.add('node');
+    
+    const circle = document.createElementNS(ns, 'circle');
+    circle.setAttribute('r', node.size);
+    circle.setAttribute('fill', node.color);
+    circle.setAttribute('opacity', '0.8');
+    circle.style.cursor = 'pointer';
+    circle.addEventListener('mouseover', () => circle.setAttribute('opacity', '1'));
+    circle.addEventListener('mouseout', () => circle.setAttribute('opacity', '0.8'));
+    
+    g.addEventListener('click', () => handleNodeClick(node));
+    
+    const text = document.createElementNS(ns, 'text');
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dy', '.3em');
+    text.setAttribute('fill', '#fff');
+    text.style.fontSize = Math.max(10, node.size /3) + 'px';
+    text.textContent = node.name;
+    
+    g.appendChild(circle);
+    g.appendChild(text);
+    svg.appendChild(g);
+  });
 }
 
 // 缩放控制
@@ -726,6 +933,9 @@ const handleResize = () => {
 
 // 组件挂载时执行
 onMounted(() => {
+  // 加载学习记录
+  loadLearningProgress()
+  
   // 等待DOM渲染完成后绘制图谱
   setTimeout(() => {
     // 模拟引入d3.js库
@@ -757,6 +967,11 @@ onMounted(() => {
     
     // 绘制简化版知识图谱
     drawSimplifiedGraph()
+    
+    // 为已学习的节点设置样式
+    knowledgeGraphData.nodes.forEach(node => {
+      updateNodeStyle(node)
+    })
   }, 100)
   
   // 添加窗口大小变化监听
@@ -836,6 +1051,7 @@ const drawSimplifiedGraph = () => {
   })
 }
 
+
 // 组件卸载时清理
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
@@ -870,6 +1086,9 @@ watch(searchTerm, (newTerm) => {
 
 /* 知识图谱容器样式 */
 .knowledge-graph-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  margin-top: 100px; /* 为固定的导航栏留出空间 */
   min-height: 100vh;
   background-color: var(--background-color);
 }
@@ -884,16 +1103,6 @@ watch(searchTerm, (newTerm) => {
   margin-bottom: 0;
   position: relative;
   overflow: hidden;
-}
-
-.heading::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%);
 }
 
 .heading h3 {
@@ -1085,7 +1294,6 @@ watch(searchTerm, (newTerm) => {
   border-radius: 8px;
   box-shadow: var(--box-shadow);
   margin-bottom: 2rem;
-  animation: slideIn 0.3s ease;
 }
 
 @keyframes slideIn {
@@ -1097,6 +1305,18 @@ watch(searchTerm, (newTerm) => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* 过渡动画效果 */
+.node-details-enter-active,
+.node-details-leave-active {
+  transition: all 0.3s ease;
+}
+
+.node-details-enter-from,
+.node-details-leave-to {
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
 }
 
 .details-header {
@@ -1112,6 +1332,7 @@ watch(searchTerm, (newTerm) => {
 .details-header h4 {
   margin: 0;
   font-size: 2rem;
+  color: white;
 }
 
 .close-btn {
@@ -1317,11 +1538,148 @@ watch(searchTerm, (newTerm) => {
   
   .details-header h4 {
     font-size: 1.8rem;
+    color: white;
   }
   
   .card-icon {
     font-size: 3rem;
     padding: 1.5rem;
   }
+}
+
+/* 进度容器样式 */
+.progress-container {
+  background-color: #fff;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  margin-bottom: 2rem;
+}
+
+.progress-container h4 {
+  font-size: 2rem;
+  color: var(--primary-color);
+  margin-bottom: 1.5rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  background-color: #f0f0f0;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.progress {
+  height: 100%;
+  background-color: var(--primary-color);
+  transition: width 0.3s ease;
+}
+
+.progress-container p {
+  font-size: 1.6rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+/* 进度统计 */
+.progress-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 1rem;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.stat-label {
+  display: block;
+  font-size: 1.4rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  display: block;
+  font-size: 2rem;
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* 继续学习按钮 */
+.continue-btn {
+  width: 100%;
+  padding: 1.2rem;
+  background-color: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.6rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+}
+
+.continue-btn:hover {
+  background-color: var(--primary-light);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(36, 77, 77, 0.3);
+}
+
+/* 详情卡片操作按钮 */
+.detail-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #eee;
+}
+
+.learn-btn, .resource-btn {
+  flex: 1;
+  padding: 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+}
+
+.learn-btn {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+
+.learn-btn:hover {
+  background-color: var(--primary-light);
+  transform: translateY(-2px);
+}
+
+.resource-btn {
+  background-color: #f9f9f9;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+}
+
+.resource-btn:hover {
+  background-color: var(--primary-color);
+  color: #fff;
+  transform: translateY(-2px);
 }
 </style>

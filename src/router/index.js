@@ -13,6 +13,8 @@ import PeripheralView from '../views/PeripheralView.vue'
 import BlogView from '../views/BlogView.vue'
 import TeamView from '../views/TeamView.vue'
 import ContactView from '../views/ContactView.vue'
+import ChatBot from '../components/ChatBot.vue'
+import Person from '../views/Person.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -32,7 +34,13 @@ const router = createRouter({
     { path: '/blog', name: 'blog', component: BlogView },
     { path: '/team', name: 'team', component: TeamView },
     { path: '/contact', name: 'contact', component: ContactView },
-  ]
+    { path: '/chatBot', name: 'chatBot', component: ChatBot },
+    { path: '/user-center', name: 'user-center', component: Person },
+  ],
+  scrollBehavior(to, from, savedPosition) {
+    // 始终滚动到顶部
+    return { top: 0 }
+  }
 })
 
 export default router
