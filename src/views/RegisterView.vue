@@ -106,43 +106,42 @@ const register = async () => {
   isSubmitting.value = true
   
   try {
-    // 在实际应用中，这里会调用API进行注册
-    // 由于没有后端，我们使用模拟数据和localStorage
-    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]')
+    // 调用后端API进行注册
+    const response = await fetch('/api/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: formData.value.username,
+        email: formData.value.email,
+        password: formData.value.password
+      })
+    })
     
-    // 检查用户名或邮箱是否已存在
-    if (existingUsers.some(user => user.username === formData.value.username)) {
-      errors.value.username = '用户名已存在'
-      return
+    const data = await response.json()
+    
+    console.log('注册API响应:', data)
+    console.log('响应状态码:', response.status)
+    
+    if (response.ok) {
+      // 注册成功
+      flash('注册成功!')
+      
+      // 跳转到登录页面或首页
+      router.push('/')
+    } else {
+      // 注册失败，显示错误信息
+      if (data.message.includes('用户名已存在')) {
+        errors.value.username = data.message
+      } else if (data.message.includes('邮箱已被注册')) {
+        errors.value.email = data.message
+      } else {
+        flash(data.message || '注册失败，请稍后重试!', 'error')
+      }
     }
-    
-    if (existingUsers.some(user => user.email === formData.value.email)) {
-      errors.value.email = '邮箱已被注册'
-      return
-    }
-    
-    // 创建新用户
-    const newUser = {
-      id: Date.now(),
-      username: formData.value.username,
-      email: formData.value.email,
-      password: formData.value.password, // 在实际应用中应该加密存储
-      createdAt: new Date().toISOString()
-    }
-    
-    // 保存用户数据
-    existingUsers.push(newUser)
-    localStorage.setItem('users', JSON.stringify(existingUsers))
-    
-    // 自动登录新用户
-    store.setUser(newUser)
-    
-    flash('注册成功!')
-    
-    // 跳转到首页或用户中心
-    router.push('/')
   } catch (error) {
-    flash('注册失败，请稍后重试!', 'error')
+    flash('网络错误，请检查后端服务是否运行!', 'error')
     console.error('注册失败:', error)
   } finally {
     isSubmitting.value = false

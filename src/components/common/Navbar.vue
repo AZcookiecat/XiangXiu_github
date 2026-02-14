@@ -230,41 +230,49 @@ const checkout = () => {
 }
 
 const login = async () => {
-  // 在实际应用中，这里会调用API进行登录
-  // 由于没有后端，我们从localStorage中查找用户
-  const existingUsers = JSON.parse(localStorage.getItem('users') || '[]')
-  
-  // 添加调试信息
-  console.log('尝试登录的用户名:', username.value)
-  console.log('localStorage中的用户数量:', existingUsers.length)
-  
-  // 查找匹配的用户 - 支持用户名或邮箱登录
-  const user = existingUsers.find(u => 
-    (u.username === username.value || u.email === username.value) && u.password === password.value
-  )
-  
-  if (user) {
-    store.setUser(user)
-    flash('登录成功！')
-    isLoginActive.value = false
+  try {
+    // 调用后端API进行登录
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: username.value,
+        password: password.value
+      })
+    })
     
-    // 清空表单
-    username.value = ''
-    password.value = ''
+    const data = await response.json()
     
-    // 登录成功后导航到首页，确保问候语正确显示
-    router.push('/')
-  } else {
-    // 查找是否存在该用户名或邮箱
-    const userExists = existingUsers.find(u => u.username === username.value || u.email === username.value)
-    if (userExists) {
-      console.log('用户名/邮箱存在但密码不匹配')
-      flash('密码错误！', 'error')
+    console.log('登录API响应:', data)
+    console.log('响应状态码:', response.status)
+    
+    if (response.ok) {
+      // 登录成功
+      const userData = {
+        id: data.user_id,
+        username: username.value,
+        is_admin: data.is_admin
+      }
+      store.setUser(userData)
+      flash('登录成功！')
+      isLoginActive.value = false
+      
+      // 清空表单
+      username.value = ''
+      password.value = ''
+      
+      // 登录成功后导航到首页
+      router.push('/')
     } else {
-      console.log('用户名和邮箱都不存在')
-      flash('用户名或邮箱不存在！', 'error')
+      // 登录失败
+      console.log('登录失败:', data.message)
+      flash(data.message || '登录失败，请稍后重试！', 'error')
     }
-    return
+  } catch (error) {
+    console.error('登录请求出错:', error)
+    flash('网络错误，请检查后端服务是否运行！', 'error')
   }
 }
 

@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>节点管理</h1>
+<p class="text-muted">管理知识图谱的节点</p>
+
+<div class="mt-4">
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5>节点列表</h5>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addNodeModal">
+                    添加节点
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <form method="GET" action="/admin/nodes" class="d-flex">
+                    <input type="text" name="search" class="form-control me-2" placeholder="搜索节点..." value="{{ search_term }}">
+                    <select name="category" class="form-select me-2">
+                        <option value="">所有类别</option>
+                        {% for category in categories %}
+                        <option value="{{ category }}" {% if selected_category == category %}selected{% endif %}>{{ category }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-primary">搜索</button>
+                </form>
+            </div>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>类别</th>
+                        <th>内容</th>
+                        <th>来源文件</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for node in nodes %}
+                    <tr>
+                        <td>{{ node.id }}</td>
+                        <td>{{ node.category }}</td>
+                        <td>{{ node.content[:100] }}...</td>
+                        <td>{{ node.source_file }}</td>
+                        <td>{{ node.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editNodeModal" onclick="editNode({{ node.id }}, '{{ node.category }}', '{{ node.content }}', '{{ node.source_file }}')">
+                                编辑
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" onclick="deleteNode({{ node.id }})">&nbsp;删除&nbsp;</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <p class="text-muted">共 {{ total_nodes }} 个节点</p>
+                <nav>
+                    <ul class="pagination">
+                        {% if page > 1 %}
+                        <li class="page-item"><a class="page-link" href="?page={{ page-1 }}&search={{ search_term }}&category={{ selected_category }}">上一页</a></li>
+                        {% endif %}
+                        {% for p in range(1, total_pages + 1) %}
+                        <li class="page-item {% if p == page %}active{% endif %}"><a class="page-link" href="?page={{ p }}&search={{ search_term }}&category={{ selected_category }}">{{ p }}</a></li>
+                        {% endfor %}
+                        {% if page < total_pages %}
+                        <li class="page-item"><a class="page-link" href="?page={{ page+1 }}&search={{ search_term }}&category={{ selected_category }}">下一页</a></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加节点模态框 -->
+<div class="modal fade" id="addNodeModal" tabindex="-1" aria-labelledby="addNodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addNodeModalLabel">添加节点</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addNodeForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="category" class="form-label">类别</label>
+                        <input type="text" class="form-control" id="category" name="category" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="content" class="form-label">内容</label>
+                        <textarea class="form-control" id="content" name="content" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="source_file" class="form-label">来源文件</label>
+                        <input type="text" class="form-control" id="source_file" name="source_file">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="addNode()">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑节点模态框 -->
+<div class="modal fade" id="editNodeModal" tabindex="-1" aria-labelledby="editNodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editNodeModalLabel">编辑节点</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editNodeForm">
+                <input type="hidden" id="edit_node_id" name="id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_category" class="form-label">类别</label>
+                        <input type="text" class="form-control" id="edit_category" name="category" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_content" class="form-label">内容</label>
+                        <textarea class="form-control" id="edit_content" name="content" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_source_file" class="form-label">来源文件</label>
+                        <input type="text" class="form-control" id="edit_source_file" name="source_file">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveNode()">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function editNode(id, category, content, sourceFile) {
+        document.getElementById('edit_node_id').value = id;
+        document.getElementById('edit_category').value = category;
+        document.getElementById('edit_content').value = content;
+        document.getElementById('edit_source_file').value = sourceFile;
+    }
+
+    function addNode() {
+        const form = document.getElementById('addNodeForm');
+        const formData = new FormData(form);
+        
+        // 验证表单
+        if (!formData.get('category') || !formData.get('content')) {
+            alert('请填写类别和内容');
+            return;
+        }
+        
+        // 发送POST请求
+        fetch('/admin/nodes/add', {
+            method: 'POST',
+            body: formData
+        }).then(response => response.json())
+          .then(data => {
+              if (data.message === 'Node added successfully') {
+                  alert('添加成功！');
+                  // 关闭模态框
+                  const modal = bootstrap.Modal.getInstance(document.getElementById('addNodeModal'));
+                  modal.hide();
+                  // 重置表单
+                  form.reset();
+                  // 刷新页面
+                  location.reload();
+              } else {
+                  alert('添加失败：' + data.message);
+              }
+          })
+          .catch(error => {
+              alert('添加失败：' + error.message);
+          });
+    }
+
+    function deleteNode(id) {
+        if (confirm('确定要删除这个节点吗？')) {
+            fetch(`/admin/nodes/delete/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.message === 'Node deleted successfully') {
+                      alert('删除成功！');
+                      location.reload();
+                  } else {
+                      alert('删除失败：' + data.message);
+                  }
+              });
+        }
+    }
+
+    function saveNode() {
+        const form = document.getElementById('editNodeForm');
+        const formData = new FormData(form);
+        
+        // 验证表单
+        if (!formData.get('category') || !formData.get('content')) {
+            alert('请填写类别和内容');
+            return;
+        }
+        
+        // 发送POST请求
+        fetch('/admin/nodes/edit', {
+            method: 'POST',
+            body: formData
+        }).then(response => response.json())
+          .then(data => {
+              if (data.message === 'Node updated successfully') {
+                  alert('编辑成功！');
+                  // 关闭模态框
+                  const modal = bootstrap.Modal.getInstance(document.getElementById('editNodeModal'));
+                  modal.hide();
+                  // 刷新页面
+                  location.reload();
+              } else {
+                  alert('编辑失败：' + data.message);
+              }
+          })
+          .catch(error => {
+              alert('编辑失败：' + error.message);
+          });
+    }
+</script>
+{% endblock %}

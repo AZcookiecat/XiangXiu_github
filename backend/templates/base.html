@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>湘绣管理系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .sidebar {
+            min-height: 100vh;
+            background-color: #244d4d;
+            color: white;
+        }
+        .sidebar a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .sidebar a:hover {
+            background-color: #3a6e6e;
+        }
+        .sidebar a.active {
+            background-color: #4f9e9e;
+        }
+        .content {
+            padding: 20px;
+        }
+        .card {
+            margin-bottom: 20px;
+        }
+        .btn-primary {
+            background-color: #244d4d;
+            border-color: #244d4d;
+        }
+        .btn-primary:hover {
+            background-color: #3a6e6e;
+            border-color: #3a6e6e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-3 sidebar">
+                <div class="p-4">
+                    <h3>湘绣管理系统</h3>
+                </div>
+                <div class="p-2">
+                    <a href="/" {% if request.path == '/' or request.path == '/admin' %}class="active"{% endif %}>首页</a>
+                    <a href="/admin/nodes" {% if request.path == '/admin/nodes' %}class="active"{% endif %}>节点管理</a>
+                    <a href="/admin/relationships" {% if request.path == '/admin/relationships' %}class="active"{% endif %}>关系管理</a>
+                    <a href="/admin/products" {% if request.path == '/admin/products' %}class="active"{% endif %}>产品管理</a>
+                    <a href="/admin/users" {% if request.path == '/admin/users' %}class="active"{% endif %}>用户管理</a>
+                    <a href="/admin/import" {% if request.path == '/admin/import' %}class="active"{% endif %}>数据导入</a>
+                    <hr class="my-3 bg-light">
+                    <a href="/logout" class="text-danger hover:bg-red-100">登出</a>
+                </div>
+            </div>
+            <!-- 主内容 -->
+            <div class="col-md-9 content">
+                <div class="p-4">
+                    {% block content %}
+                    {% endblock %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

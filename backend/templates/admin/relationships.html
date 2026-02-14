@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>关系管理</h1>
+<p class="text-muted">管理知识图谱的节点关系</p>
+
+<div class="mt-4">
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5>关系列表</h5>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRelationshipModal">
+                    添加关系
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <form method="GET" action="/admin/relationships" class="d-flex">
+                    <input type="text" name="search" class="form-control me-2" placeholder="搜索关系类型..." value="{{ search_term }}">
+                    <button type="submit" class="btn btn-primary">搜索</button>
+                </form>
+            </div>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>源节点</th>
+                        <th>目标节点</th>
+                        <th>关系类型</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for relationship in relationships %}
+                    <tr>
+                        <td>{{ relationship.id }}</td>
+                        <td>{{ relationship.source_node.category }}: {{ relationship.source_node.content[:30] }}...</td>
+                        <td>{{ relationship.target_node.category }}: {{ relationship.target_node.content[:30] }}...</td>
+                        <td>{{ relationship.relationship_type }}</td>
+                        <td>{{ relationship.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-danger" onclick="deleteRelationship({{ relationship.id }})">删除</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <p class="text-muted">共 {{ total_relationships }} 个关系</p>
+                <nav>
+                    <ul class="pagination">
+                        {% if page > 1 %}
+                        <li class="page-item"><a class="page-link" href="?page={{ page-1 }}&search={{ search_term }}">上一页</a></li>
+                        {% endif %}
+                        {% for p in range(1, total_pages + 1) %}
+                        <li class="page-item {% if p == page %}active{% endif %}"><a class="page-link" href="?page={{ p }}&search={{ search_term }}">{{ p }}</a></li>
+                        {% endfor %}
+                        {% if page < total_pages %}
+                        <li class="page-item"><a class="page-link" href="?page={{ page+1 }}&search={{ search_term }}">下一页</a></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加关系模态框 -->
+<div class="modal fade" id="addRelationshipModal" tabindex="-1" aria-labelledby="addRelationshipModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addRelationshipModalLabel">添加关系</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addRelationshipForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="source_node_id" class="form-label">源节点</label>
+                        <select class="form-select" id="source_node_id" name="source_node_id" required>
+                            <option value="">请选择源节点</option>
+                            {% for node in nodes %}
+                            <option value="{{ node.id }}">{{ node.category }}: {{ node.content[:50] }}...</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="target_node_id" class="form-label">目标节点</label>
+                        <select class="form-select" id="target_node_id" name="target_node_id" required>
+                            <option value="">请选择目标节点</option>
+                            {% for node in nodes %}
+                            <option value="{{ node.id }}">{{ node.category }}: {{ node.content[:50] }}...</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="addRelationship()">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function addRelationship() {
+        const form = document.getElementById('addRelationshipForm');
+        const formData = new FormData(form);
+        
+        // 验证表单
+        if (!formData.get('source_node_id') || !formData.get('target_node_id')) {
+            alert('请选择源节点和目标节点');
+            return;
+        }
+        
+        // 发送POST请求
+        fetch('/admin/relationships/add', {
+            method: 'POST',
+            body: formData
+        }).then(response => response.json())
+          .then(data => {
+              if (data.message === 'Relationship added successfully') {
+                  alert('添加成功！');
+                  // 关闭模态框
+                  const modal = bootstrap.Modal.getInstance(document.getElementById('addRelationshipModal'));
+                  modal.hide();
+                  // 重置表单
+                  form.reset();
+                  // 刷新页面
+                  location.reload();
+              } else {
+                  alert('添加失败：' + data.message);
+              }
+          })
+          .catch(error => {
+              alert('添加失败：' + error.message);
+          });
+    }
+
+    function deleteRelationship(id) {
+        if (confirm('确定要删除这个关系吗？')) {
+            fetch(`/admin/relationships/delete/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.message === 'Relationship deleted successfully') {
+                      alert('删除成功！');
+                      location.reload();
+                  } else {
+                      alert('删除失败：' + data.message);
+                  }
+              });
+        }
+    }
+</script>
+{% endblock %}

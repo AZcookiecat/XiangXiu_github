@@ -1,0 +1,3 @@
+INSERT INTO `user` (`id`, `username`, `email`, `password`, `created_at`, `is_admin`) VALUES (1, 'admin', '123456789@qq.com', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', '2026-02-14 15:30:54', 0);
+INSERT INTO `user` (`id`, `username`, `email`, `password`, `created_at`, `is_admin`) VALUES (4, '朱理婧', 'Julia_zhulijing@163.com', '4cdc0e72c23c05239d2e84c75121a52324302f61939262af5e4004ed056ed13e', '2026-02-14 16:54:56', 1);
+INSERT INTO `user` (`id`, `username`, `email`, `password`, `created_at`, `is_admin`) VALUES (5, '向烁安', 'xk-cookiecat@qq.com', 'd871692fc5e2bd3ec73afe467b610a56e233731fc5568ddd1e9a1d2726d04289', '2026-02-14 16:55:44', 1);
