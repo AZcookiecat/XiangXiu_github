@@ -15,6 +15,8 @@ import TeamView from '../views/TeamView.vue'
 import ContactView from '../views/ContactView.vue'
 import ChatBot from '../components/ChatBot.vue'
 import Person from '../views/Person.vue'
+import ModelListView from '../views/ModelListView.vue'
+import ModelViewerView from '../views/ModelViewerView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -36,6 +38,8 @@ const router = createRouter({
     { path: '/contact', name: 'contact', component: ContactView },
     { path: '/chatBot', name: 'chatBot', component: ChatBot },
     { path: '/user-center', name: 'user-center', component: Person },
+    { path: '/models', name: 'models', component: ModelListView },
+    { path: '/models/:id', name: 'model-viewer', component: ModelViewerView, props: true },
   ],
   scrollBehavior(to, from, savedPosition) {
     // 始终滚动到顶部

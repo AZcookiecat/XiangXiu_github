@@ -101,6 +101,9 @@
               <router-link to="/exhibition" class="btn guofeng-btn">
                 <span class="btn-text">品鉴佳作</span>
               </router-link>
+              <router-link to="/models" class="btn guofeng-btn model-btn">
+                <span class="btn-text">3D模型展示</span>
+              </router-link>
             </div>
             <div class="content-right">
               <div class="book-container guofeng-book">
@@ -1745,6 +1748,15 @@ const goToProduct = (productName) => {
   left: 100%;
 }
 
+.model-btn {
+  margin-left: 1rem;
+  background: linear-gradient(135deg, #4a7c7c, #5a9e9e);
+}
+
+.model-btn:hover {
+  background: linear-gradient(135deg, #5a9e9e, #6abdbd);
+}
+
 .btn-text {
   position: relative;
   z-index: 1;
@@ -1757,17 +1769,6 @@ const goToProduct = (productName) => {
   position: relative;
   padding: 2rem;
   background: linear-gradient(135deg, #f5f5f5, #e8e8e8);
-  border-radius: 15px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-}
-
-.guofeng-book::before {
-  content: '';
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  right: 10px;
-  bottom: 10px;
   border: 2px solid rgba(36, 77, 77, 0.2);
   border-radius: 10px;
   pointer-events: none;

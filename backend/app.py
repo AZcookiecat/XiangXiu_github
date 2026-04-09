@@ -79,6 +79,29 @@ class KnowledgeRelationship(db.Model):
     source_node = db.relationship('KnowledgeNode', foreign_keys=[source_node_id], backref='source_relationships')
     target_node = db.relationship('KnowledgeNode', foreign_keys=[target_node_id], backref='target_relationships')
 
+# 3D模型标签关联表
+model_tags = db.Table('model_tags',
+    db.Column('model_id', db.Integer, db.ForeignKey('model3d.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('model_tag.id'), primary_key=True)
+)
+
+class Model3D(db.Model):
+    __tablename__ = 'model3d'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    file_path = db.Column(db.String(255), nullable=False)
+    file_size = db.Column(db.Integer, nullable=True)
+    category = db.Column(db.String(50), nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    # 关联
+    tags = db.relationship('ModelTag', secondary=model_tags, backref='models')
+
+class ModelTag(db.Model):
+    __tablename__ = 'model_tag'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+
 # 管理权限检查装饰器
 def admin_required(f):
     @wraps(f)
@@ -1137,10 +1160,202 @@ def admin_import():
         {'time': '2026-02-13 15:30', 'count': 12, 'status': 'success', 'details': '导入了12条数据记录'}
     ]
     
-    return render_template('admin/import.html', 
-                           csv_files=csv_files, 
-                           import_result=import_result, 
+    return render_template('admin/import.html',
+                           csv_files=csv_files,
+                           import_result=import_result,
                            import_history=import_history)
+
+# ==================== 3D模型API ====================
+
+# 支持的3D文件格式
+SUPPORTED_3D_FORMATS = ['.glb', '.gltf', '.obj', '.fbx', '.stl', '.ply', '.dae']
+
+@app.route('/api/models', methods=['GET'])
+def get_models():
+    """获取3D模型列表"""
+    try:
+        category = request.args.get('category')
+        search = request.args.get('search')
+
+        query = Model3D.query
+
+        if category:
+            query = query.filter(Model3D.category == category)
+
+        if search:
+            query = query.filter(Model3D.name.contains(search))
+
+        models = query.order_by(Model3D.created_at.desc()).all()
+
+        result = []
+        for model in models:
+            result.append({
+                'id': model.id,
+                'name': model.name,
+                'description': model.description,
+                'file_path': model.file_path,
+                'file_size': model.file_size,
+                'category': model.category,
+                'created_at': model.created_at.strftime('%Y-%m-%d %H:%M:%S') if model.created_at else None,
+                'tags': [{'id': tag.id, 'name': tag.name} for tag in model.tags]
+            })
+
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'message': '获取模型列表失败', 'error': str(e)}), 500
+
+@app.route('/api/models/<int:id>', methods=['GET'])
+def get_model(id):
+    """获取单个3D模型详情"""
+    try:
+        model = Model3D.query.get_or_404(id)
+
+        result = {
+            'id': model.id,
+            'name': model.name,
+            'description': model.description,
+            'file_path': model.file_path,
+            'file_size': model.file_size,
+            'category': model.category,
+            'created_at': model.created_at.strftime('%Y-%m-%d %H:%M:%S') if model.created_at else None,
+            'tags': [{'id': tag.id, 'name': tag.name} for tag in model.tags]
+        }
+
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'message': '获取模型详情失败', 'error': str(e)}), 500
+
+@app.route('/api/model-categories', methods=['GET'])
+def get_model_categories():
+    """获取所有3D模型分类"""
+    try:
+        categories = db.session.query(Model3D.category).filter(
+            Model3D.category.isnot(None)
+        ).distinct().all()
+
+        return jsonify([c[0] for c in categories if c[0]]), 200
+    except Exception as e:
+        return jsonify({'message': '获取分类失败', 'error': str(e)}), 500
+
+@app.route('/api/model-file/<int:id>', methods=['GET'])
+def get_model_file(id):
+    """获取3D模型文件"""
+    try:
+        model = Model3D.query.get_or_404(id)
+
+        if not os.path.exists(model.file_path):
+            return jsonify({'message': '文件不存在'}), 404
+
+        from flask import send_file
+        return send_file(model.file_path, as_attachment=False)
+    except Exception as e:
+        return jsonify({'message': '获取文件失败', 'error': str(e)}), 500
+
+# 3D模型管理后台路由
+@app.route('/admin/models')
+@admin_required
+def admin_models():
+    """3D模型管理页面"""
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    search_term = request.args.get('search', '')
+    category = request.args.get('category', '')
+
+    query = Model3D.query
+
+    if search_term:
+        query = query.filter(
+            (Model3D.name.contains(search_term)) |
+            (Model3D.description.contains(search_term))
+        )
+
+    if category:
+        query = query.filter(Model3D.category == category)
+
+    pagination = query.order_by(Model3D.id.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    models = pagination.items
+    total_models = pagination.total
+    total_pages = pagination.pages
+
+    categories = [c[0] for c in db.session.query(Model3D.category).distinct().all() if c[0]]
+
+    return render_template('admin/models.html',
+                           models=models,
+                           search_term=search_term,
+                           category=category,
+                           categories=categories,
+                           page=page,
+                           total_models=total_models,
+                           total_pages=total_pages,
+                           current_user=session)
+
+@app.route('/admin/models/add', methods=['POST'])
+@admin_required
+def admin_add_model():
+    """添加3D模型"""
+    try:
+        name = request.form.get('name')
+        description = request.form.get('description')
+        category = request.form.get('category')
+        file = request.files.get('file')
+
+        if not name or not file:
+            return jsonify({'message': '名称和文件不能为空'}), 400
+
+        # 检查文件格式
+        file_ext = os.path.splitext(file.filename)[1].lower()
+        if file_ext not in SUPPORTED_3D_FORMATS:
+            return jsonify({
+                'message': f'不支持的文件格式。支持的格式: {", ".join(SUPPORTED_3D_FORMATS)}'
+            }), 400
+
+        # 保存文件
+        upload_dir = os.path.join(os.path.dirname(__file__), 'uploads', 'models')
+        os.makedirs(upload_dir, exist_ok=True)
+
+        file_path = os.path.join(upload_dir, file.filename)
+        file.save(file_path)
+
+        # 获取文件大小
+        file_size = os.path.getsize(file_path)
+
+        # 创建模型记录
+        new_model = Model3D(
+            name=name,
+            description=description,
+            category=category,
+            file_path=file_path,
+            file_size=file_size
+        )
+
+        db.session.add(new_model)
+        db.session.commit()
+
+        return jsonify({'message': '模型添加成功', 'model_id': new_model.id}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': '添加模型失败', 'error': str(e)}), 500
+
+@app.route('/admin/models/delete/<int:id>', methods=['POST'])
+@admin_required
+def admin_delete_model(id):
+    """删除3D模型"""
+    try:
+        model = Model3D.query.get_or_404(id)
+
+        # 删除文件
+        if os.path.exists(model.file_path):
+            os.remove(model.file_path)
+
+        db.session.delete(model)
+        db.session.commit()
+
+        return jsonify({'message': '模型删除成功'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': '删除模型失败', 'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

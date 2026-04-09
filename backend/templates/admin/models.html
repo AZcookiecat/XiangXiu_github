@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block title %}3D模型管理{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="page-title">3D模型管理</h1>
+
+    <div class="toolbar">
+        <form class="search-form" method="GET" action="{{ url_for('admin_models') }}">
+            <input type="text" name="search" placeholder="搜索模型..." value="{{ search_term }}">
+            <select name="category">
+                <option value="">所有分类</option>
+                {% for cat in categories %}
+                <option value="{{ cat }}" {% if cat == category %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">搜索</button>
+        </form>
+        <button class="btn btn-success" onclick="showAddModal()">添加模型</button>
+    </div>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>名称</th>
+                <th>分类</th>
+                <th>文件格式</th>
+                <th>大小</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for model in models %}
+            <tr>
+                <td>{{ model.id }}</td>
+                <td>{{ model.name }}</td>
+                <td>{{ model.category or '未分类' }}</td>
+                <td>{{ model.file_path.split('.')[-1].upper() }}</td>
+                <td>{{ "%.2f" % (model.file_size / 1024 / 1024) }} MB</td>
+                <td>{{ model.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    <button class="btn btn-sm btn-danger" onclick="deleteModel({{ model.id }})">删除</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        {% if page > 1 %}
+        <a href="{{ url_for('admin_models', page=page-1, search=search_term, category=category) }}" class="btn btn-sm">上一页</a>
+        {% endif %}
+        <span>第 {{ page }} 页 / 共 {{ total_pages }} 页</span>
+        {% if page < total_pages %}
+        <a href="{{ url_for('admin_models', page=page+1, search=search_term, category=category) }}" class="btn btn-sm">下一页</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- 添加模型模态框 -->
+<div id="addModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>添加3D模型</h2>
+            <span class="close" onclick="closeAddModal()">&times;</span>
+        </div>
+        <form id="addModelForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>模型名称</label>
+                <input type="text" name="name" id="modelName" required>
+            </div>
+            <div class="form-group">
+                <label>描述</label>
+                <textarea name="description" id="modelDescription" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label>分类</label>
+                <input type="text" name="category" id="modelCategory" placeholder="如：展厅、绣品、工具">
+            </div>
+            <div class="form-group">
+                <label>模型文件</label>
+                <input type="file" name="file" id="modelFile" accept=".glb,.gltf,.obj,.fbx,.stl,.ply,.dae" required>
+                <small>支持的格式: GLB, GLTF, OBJ, FBX, STL, PLY, DAE</small>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeAddModal()">取消</button>
+                <button type="submit" class="btn btn-primary">添加</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.page-title {
+    margin-bottom: 2rem;
+    color: #333;
+}
+
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.search-form {
+    display: flex;
+    gap: 1rem;
+}
+
+.search-form input,
+.search-form select {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.data-table th,
+.data-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.data-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+.data-table tr:hover {
+    background: #f8f9fa;
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: #244d4d;
+    color: white;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background: white;
+    margin: 5% auto;
+    padding: 2rem;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 8px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.close {
+    font-size: 2rem;
+    cursor: pointer;
+    color: #999;
+}
+
+.close:hover {
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.form-group small {
+    color: #666;
+    font-size: 0.875rem;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+</style>
+
+<script>
+function showAddModal() {
+    document.getElementById('addModal').style.display = 'block';
+}
+
+function closeAddModal() {
+    document.getElementById('addModal').style.display = 'none';
+}
+
+function deleteModel(id) {
+    if (confirm('确定要删除这个模型吗？')) {
+        fetch(`/admin/models/delete/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            location.reload();
+        })
+        .catch(error => {
+            alert('删除失败: ' + error);
+        });
+    }
+}
+
+// 处理表单提交
+document.getElementById('addModelForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData();
+    formData.append('name', document.getElementById('modelName').value);
+    formData.append('description', document.getElementById('modelDescription').value);
+    formData.append('category', document.getElementById('modelCategory').value);
+    formData.append('file', document.getElementById('modelFile').files[0]);
+
+    fetch('/admin/models/add', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.model_id) {
+            alert('添加成功！');
+            location.reload();
+        } else {
+            alert('添加失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('添加失败: ' + error);
+    });
+});
+
+// 点击模态框外部关闭
+window.onclick = function(event) {
+    const modal = document.getElementById('addModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}
