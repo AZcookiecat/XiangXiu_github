@@ -144,9 +144,25 @@ const getAIResponse = async (question) => {
     // 错误情况下也关闭输入状态并显示友好提示
     isTyping.value = false
     
+    // 获取后端返回的错误信息
+    let errorMessage = '抱歉，我暂时无法为您提供回答。'
+    if (error.response) {
+      // 后端返回了错误响应
+      if (error.response.data && error.response.data.error) {
+        errorMessage = error.response.data.error
+      } else if (error.response.status === 503) {
+        errorMessage = 'AI服务未配置，请联系管理员。'
+      } else if (error.response.status === 500) {
+        errorMessage = '服务器内部错误，请稍后再试。'
+      }
+    } else if (error.request) {
+      // 请求发出但没有收到响应
+      errorMessage = '无法连接到服务器，请检查网络或后端服务是否运行。'
+    }
+    
     messages.value.push({
       type: 'bot-message',
-      content: '抱歉，我暂时无法为您提供回答。可能是网络问题或服务暂时不可用，请稍后再试。',
+      content: errorMessage,
       source: '❌ 服务异常'
     })
   } finally {

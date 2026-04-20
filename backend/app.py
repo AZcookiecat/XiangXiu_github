@@ -1,3 +1,15 @@
+# Python 3.10+ 兼容性修复 - 解决 collections.MutableSet 已移除问题
+import sys
+if sys.version_info >= (3, 10):
+    import collections.abc
+    import collections
+    if not hasattr(collections, 'MutableSet'):
+        collections.MutableSet = collections.abc.MutableSet
+    if not hasattr(collections, 'MutableMapping'):
+        collections.MutableMapping = collections.abc.MutableMapping
+    if not hasattr(collections, 'Callable'):
+        collections.Callable = collections.abc.Callable
+
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -6,6 +18,10 @@ import os
 import hashlib
 from functools import wraps
 from config import config
+from dotenv import load_dotenv
+
+# 加载环境变量
+load_dotenv()
 
 # 创建Flask应用
 app = Flask(__name__)
@@ -20,9 +36,27 @@ app_config = config[os.getenv('FLASK_ENV') or 'default']
 app.config.from_object(app_config)
 
 # 初始化扩展
-CORS(app)
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
+# 添加安全响应头
+@app.after_request
+def add_security_headers(response):
+    # 允许 iframe 嵌入（开发环境使用，生产环境建议限制域名）
+    response.headers.pop('X-Frame-Options', None)
+    # 内容安全策略 - 允许本地开发环境
+    response.headers['Content-Security-Policy'] = "frame-ancestors 'self' http://localhost:* http://127.0.0.1:* https://*;"
+    # 其他安全头
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    return response
 
 # 密码加密函数
 def hash_password(password):
@@ -1439,9 +1473,17 @@ def admin_delete_keyword(id):
 
 import openai
 
-# Deepseek API配置
-DEEPSEEK_API_KEY = 'sk-e74d849cccdd401da5923a4d43accde0'
-DEEPSEEK_BASE_URL = 'https://api.deepseek.com'
+# Deepseek API配置（从环境变量读取）
+DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
+DEEPSEEK_BASE_URL = os.getenv('DEEPSEEK_BASE_URL', 'https://api.deepseek.com')
+
+print(f"[DEBUG] DEEPSEEK_API_KEY 加载状态: {'已设置' if DEEPSEEK_API_KEY else '未设置'}")
+if DEEPSEEK_API_KEY:
+    print(f"[DEBUG] API Key 前10位: {DEEPSEEK_API_KEY[:10]}...")
+
+if not DEEPSEEK_API_KEY:
+    print("[警告] DEEPSEEK_API_KEY 环境变量未设置，AI助手功能将不可用")
+    print("[提示] 请在 backend/.env 文件中设置 DEEPSEEK_API_KEY=your_api_key")
 
 def extract_keywords(text):
     """提取查询关键词（简单分词）"""
@@ -1576,7 +1618,16 @@ def chat():
         })
     
     # 3. 第三优先级：调用Deepseek API
+    if not DEEPSEEK_API_KEY:
+        return jsonify({
+            'error': 'AI服务未配置，请联系管理员设置 DEEPSEEK_API_KEY 环境变量'
+        }), 503
+    
     try:
+        print(f"[DEBUG] 正在调用 Deepseek API，用户消息: {user_message[:50]}...")
+        print(f"[DEBUG] API Key: {DEEPSEEK_API_KEY[:15]}...")
+        print(f"[DEBUG] API URL: {DEEPSEEK_BASE_URL}")
+        
         client = openai.OpenAI(api_key=DEEPSEEK_API_KEY, base_url=DEEPSEEK_BASE_URL)
         response = client.chat.completions.create(
             model="deepseek-chat",
@@ -1586,11 +1637,22 @@ def chat():
             ],
             stream=False
         )
+        
+        ai_response = response.choices[0].message.content
+        print(f"[DEBUG] Deepseek API 响应: {ai_response[:100]}...")
+        
         return jsonify({
             'source': 'deepseek',
-            'answer': response.choices[0].message.content
+            'answer': ai_response
         })
+    except openai.AuthenticationError as e:
+        print(f"[错误] Deepseek API 认证失败: {str(e)}")
+        return jsonify({'error': 'API 认证失败，请检查 API Key 是否正确'}), 401
+    except openai.RateLimitError as e:
+        print(f"[错误] Deepseek API 请求过于频繁: {str(e)}")
+        return jsonify({'error': '请求过于频繁，请稍后再试'}), 429
     except Exception as e:
+        print(f"[错误] Deepseek API 调用失败: {str(e)}")
         return jsonify({'error': f'AI服务暂时不可用: {str(e)}'}), 500
 
 @app.route('/api/knowledge/import-file', methods=['POST'])
