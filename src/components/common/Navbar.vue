@@ -1,6 +1,6 @@
 <template>
   <header class="header">
-    <router-link to="/" class="logo"> <i class="fas fa-lightbulb"></i> 元生湘缘 </router-link>
+    <router-link to="/" class="logo"> <img src="/微信图片_20260418223440_2986_32.png" alt="湘云绣阁" class="logo-img"> 湘云绣阁 </router-link>
 
     <form action="" class="search-form">
       <input type="search" placeholder="在此搜索..." id="search-box">
@@ -349,6 +349,14 @@ onUnmounted(() => {
   color: var(--primary-color);
   font-size: 2.8rem;
   animation: rotate 5s linear infinite;
+}
+
+.logo-img {
+  width: 4rem;
+  height: 4rem;
+  margin-right: 1rem;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 @keyframes rotate {

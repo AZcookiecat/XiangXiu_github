@@ -117,7 +117,7 @@ const achievements = ref([
   },
   {
     id: 3,
-    title: '元生湘缘——元宇宙数字湘绣生态系统',
+    title: '湘云绣阁——元宇宙数字湘绣生态系统',
     description: '第十八届中国大学生计算机设计大赛中南地区赛三等奖',
     year: '2025年'
   }

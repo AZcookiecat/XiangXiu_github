@@ -20,7 +20,7 @@
 
       <div class="box">
         <h3>关于我们</h3>
-        <router-link to="/team"> <i class="fas fa-arrow-right"></i> 湘绣元生湘缘团队</router-link>
+        <router-link to="/team"> <i class="fas fa-arrow-right"></i> 湘绣湘云绣阁团队</router-link>
         <router-link to="/contact"> <i class="fas fa-arrow-right"></i> 联系我们</router-link>
         <a href="https://map.baidu.com/poi//@12570968.17,3257050.89,11.19z?info_merge=1&ugc_type=3&ugc_ver=1&querytype=detailConInfo&searchseo=1&uid=8762a323fa3e511cae080f4f" target="_blank">
           <i class="fas fa-map-marker-alt"></i>一键查询地址：湖南省长沙市岳麓区岳麓大道湖南工商大学
@@ -32,7 +32,7 @@
   </footer>
 
   <section class="credit">
-    ©2025 &nbsp; 版权所有 &nbsp;&nbsp;&nbsp; 湖南工商大学 &nbsp; 元生湘缘团队
+    ©2025 &nbsp; 版权所有 &nbsp;&nbsp;&nbsp; 湖南工商大学 &nbsp; 湘云绣阁团队
   </section>
 </template>
 

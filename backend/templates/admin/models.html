@@ -1,270 +1,167 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
 {% block title %}3D模型管理{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1 class="page-title">3D模型管理</h1>
+<!-- 页面标题 -->
+<div class="page-header">
+    <h4><i class="fas fa-cube me-2 text-primary"></i>3D模型管理</h4>
+    <p class="text-muted">管理湘绣展示3D模型文件</p>
+</div>
 
-    <div class="toolbar">
-        <form class="search-form" method="GET" action="{{ url_for('admin_models') }}">
-            <input type="text" name="search" placeholder="搜索模型..." value="{{ search_term }}">
-            <select name="category">
-                <option value="">所有分类</option>
-                {% for cat in categories %}
-                <option value="{{ cat }}" {% if cat == category %}selected{% endif %}>{{ cat }}</option>
-                {% endfor %}
-            </select>
-            <button type="submit" class="btn btn-primary">搜索</button>
-        </form>
-        <button class="btn btn-success" onclick="showAddModal()">添加模型</button>
+<!-- 说明卡片 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h6 class="card-title"><i class="fas fa-info-circle me-2"></i>功能说明</h6>
+        <p class="card-text text-muted mb-0">
+            管理用于虚拟展厅展示的3D模型文件。支持 GLB、GLTF、OBJ、FBX、STL 等常见3D格式。<br>
+            上传的模型将用于网站的3D展示功能。
+        </p>
     </div>
+</div>
 
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>名称</th>
-                <th>分类</th>
-                <th>文件格式</th>
-                <th>大小</th>
-                <th>创建时间</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for model in models %}
-            <tr>
-                <td>{{ model.id }}</td>
-                <td>{{ model.name }}</td>
-                <td>{{ model.category or '未分类' }}</td>
-                <td>{{ model.file_path.split('.')[-1].upper() }}</td>
-                <td>{{ "%.2f" % (model.file_size / 1024 / 1024) }} MB</td>
-                <td>{{ model.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                <td>
-                    <button class="btn btn-sm btn-danger" onclick="deleteModel({{ model.id }})">删除</button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<!-- 模型列表 -->
+<div class="card">
+    <div class="card-header">
+        <div class="toolbar mb-0">
+            <h6 class="mb-0">模型列表（共 {{ total_models }} 个）</h6>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModelModal">
+                <i class="fas fa-plus me-2"></i>添加模型
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- 搜索表单 -->
+        <div class="mb-4">
+            <form method="GET" action="/admin/models" class="search-form">
+                <input type="text" name="search" class="form-control" placeholder="搜索模型名称..." value="{{ search_term }}">
+                <select name="category" class="form-select" style="width: 180px;">
+                    <option value="">所有分类</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if cat == category %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i>搜索
+                </button>
+            </form>
+        </div>
 
-    {% if total_pages > 1 %}
-    <div class="pagination">
-        {% if page > 1 %}
-        <a href="{{ url_for('admin_models', page=page-1, search=search_term, category=category) }}" class="btn btn-sm">上一页</a>
-        {% endif %}
-        <span>第 {{ page }} 页 / 共 {{ total_pages }} 页</span>
-        {% if page < total_pages %}
-        <a href="{{ url_for('admin_models', page=page+1, search=search_term, category=category) }}" class="btn btn-sm">下一页</a>
+        <!-- 数据表格 -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>名称</th>
+                        <th>分类</th>
+                        <th>格式</th>
+                        <th>文件大小</th>
+                        <th>上传时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for model in models %}
+                    <tr>
+                        <td>{{ model.id }}</td>
+                        <td>
+                            <strong>{{ model.name }}</strong>
+                            {% if model.description %}
+                            <div class="small text-muted mt-1">{{ model.description[:50] }}{% if model.description|length > 50 %}...{% endif %}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if model.category %}
+                            <span class="badge bg-secondary">{{ model.category }}</span>
+                            {% else %}
+                            <span class="badge bg-light text-dark">未分类</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ model.file_path.split('.')[-1].upper() }}</span>
+                        </td>
+                        <td>{{ "%.2f" % (model.file_size / 1024 / 1024) }} MB</td>
+                        <td>{{ model.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteModel({{ model.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页 -->
+        {% if total_pages > 1 %}
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <p class="text-muted mb-0">第 {{ page }} 页 / 共 {{ total_pages }} 页</p>
+            <nav>
+                <ul class="pagination mb-0">
+                    {% if page > 1 %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('admin_models', page=page-1, search=search_term, category=category) }}">上一页</a></li>
+                    {% endif %}
+                    {% for p in range(1, total_pages + 1) %}
+                    <li class="page-item {% if p == page %}active{% endif %}"><a class="page-link" href="{{ url_for('admin_models', page=p, search=search_term, category=category) }}">{{ p }}</a></li>
+                    {% endfor %}
+                    {% if page < total_pages %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('admin_models', page=page+1, search=search_term, category=category) }}">下一页</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
         {% endif %}
     </div>
-    {% endif %}
 </div>
 
 <!-- 添加模型模态框 -->
-<div id="addModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>添加3D模型</h2>
-            <span class="close" onclick="closeAddModal()">&times;</span>
+<div class="modal fade" id="addModelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>添加3D模型</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addModelForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="modelName" class="form-label">模型名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="name" id="modelName" required placeholder="输入模型名称">
+                    </div>
+                    <div class="mb-3">
+                        <label for="modelCategory" class="form-label">分类</label>
+                        <input type="text" class="form-control" name="category" id="modelCategory" placeholder="如：展厅、绣品、工具">
+                        <div class="form-text">用于归类管理模型</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modelDescription" class="form-label">描述</label>
+                        <textarea class="form-control" name="description" id="modelDescription" rows="3" placeholder="输入模型描述（可选）"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modelFile" class="form-label">模型文件 <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control" name="file" id="modelFile" accept=".glb,.gltf,.obj,.fbx,.stl,.ply,.dae" required>
+                        <div class="form-text">
+                            支持格式：GLB, GLTF, OBJ, FBX, STL, PLY, DAE<br>
+                            建议文件大小不超过 50MB
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-2"></i>上传模型
+                    </button>
+                </div>
+            </form>
         </div>
-        <form id="addModelForm" enctype="multipart/form-data">
-            <div class="form-group">
-                <label>模型名称</label>
-                <input type="text" name="name" id="modelName" required>
-            </div>
-            <div class="form-group">
-                <label>描述</label>
-                <textarea name="description" id="modelDescription" rows="3"></textarea>
-            </div>
-            <div class="form-group">
-                <label>分类</label>
-                <input type="text" name="category" id="modelCategory" placeholder="如：展厅、绣品、工具">
-            </div>
-            <div class="form-group">
-                <label>模型文件</label>
-                <input type="file" name="file" id="modelFile" accept=".glb,.gltf,.obj,.fbx,.stl,.ply,.dae" required>
-                <small>支持的格式: GLB, GLTF, OBJ, FBX, STL, PLY, DAE</small>
-            </div>
-            <div class="form-actions">
-                <button type="button" class="btn btn-secondary" onclick="closeAddModal()">取消</button>
-                <button type="submit" class="btn btn-primary">添加</button>
-            </div>
-        </form>
     </div>
 </div>
 
-<style>
-.page-title {
-    margin-bottom: 2rem;
-    color: #333;
-}
-
-.toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-}
-
-.search-form {
-    display: flex;
-    gap: 1rem;
-}
-
-.search-form input,
-.search-form select {
-    padding: 0.5rem 1rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.data-table th,
-.data-table td {
-    padding: 1rem;
-    text-align: left;
-    border-bottom: 1px solid #eee;
-}
-
-.data-table th {
-    background: #f8f9fa;
-    font-weight: 600;
-}
-
-.data-table tr:hover {
-    background: #f8f9fa;
-}
-
-.btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
-}
-
-.btn-primary {
-    background: #244d4d;
-    color: white;
-}
-
-.btn-success {
-    background: #28a745;
-    color: white;
-}
-
-.btn-danger {
-    background: #dc3545;
-    color: white;
-}
-
-.btn-secondary {
-    background: #6c757d;
-    color: white;
-}
-
-.btn-sm {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-}
-
-.pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    margin-top: 2rem;
-}
-
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-}
-
-.modal-content {
-    background: white;
-    margin: 5% auto;
-    padding: 2rem;
-    width: 90%;
-    max-width: 500px;
-    border-radius: 8px;
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-}
-
-.close {
-    font-size: 2rem;
-    cursor: pointer;
-    color: #999;
-}
-
-.close:hover {
-    color: #333;
-}
-
-.form-group {
-    margin-bottom: 1.5rem;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-}
-
-.form-group input,
-.form-group textarea,
-.form-group select {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    box-sizing: border-box;
-}
-
-.form-group small {
-    color: #666;
-    font-size: 0.875rem;
-}
-
-.form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-}
-</style>
-
 <script>
-function showAddModal() {
-    document.getElementById('addModal').style.display = 'block';
-}
-
-function closeAddModal() {
-    document.getElementById('addModal').style.display = 'none';
-}
-
 function deleteModel(id) {
-    if (confirm('确定要删除这个模型吗？')) {
+    if (confirm('确定要删除这个模型吗？删除后无法恢复。')) {
         fetch(`/admin/models/delete/${id}`, {
             method: 'POST',
             headers: {
@@ -273,8 +170,12 @@ function deleteModel(id) {
         })
         .then(response => response.json())
         .then(data => {
-            alert(data.message);
-            location.reload();
+            if (data.success) {
+                alert('删除成功！');
+                location.reload();
+            } else {
+                alert('删除失败: ' + (data.message || '未知错误'));
+            }
         })
         .catch(error => {
             alert('删除失败: ' + error);
@@ -292,6 +193,11 @@ document.getElementById('addModelForm').addEventListener('submit', function(e) {
     formData.append('category', document.getElementById('modelCategory').value);
     formData.append('file', document.getElementById('modelFile').files[0]);
 
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>上传中...';
+    submitBtn.disabled = true;
+
     fetch('/admin/models/add', {
         method: 'POST',
         body: formData
@@ -300,22 +206,21 @@ document.getElementById('addModelForm').addEventListener('submit', function(e) {
     .then(data => {
         if (data.model_id) {
             alert('添加成功！');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addModelModal'));
+            modal.hide();
+            this.reset();
             location.reload();
         } else {
-            alert('添加失败: ' + data.message);
+            alert('添加失败: ' + (data.message || '未知错误'));
         }
     })
     .catch(error => {
         alert('添加失败: ' + error);
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
     });
 });
-
-// 点击模态框外部关闭
-window.onclick = function(event) {
-    const modal = document.getElementById('addModal');
-    if (event.target == modal) {
-        modal.style.display = 'none';
-    }
-}
 </script>
 {% endblock %}

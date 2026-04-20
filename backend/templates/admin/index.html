@@ -1,124 +1,139 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>湘绣管理系统</h1>
-<p class="text-muted">系统概览</p>
+<!-- 页面标题 -->
+<div class="page-header">
+    <h4><i class="fas fa-tachometer-alt me-2 text-primary"></i>系统概览</h4>
+    <p class="text-muted">湘云绣阁管理系统数据统计</p>
+</div>
 
-<div class="row mt-4">
+<!-- 统计卡片 -->
+<div class="row mb-4">
     <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">知识节点</h5>
-                <p class="card-text">{{ node_count }}</p>
-                <a href="/admin/nodes" class="btn btn-primary">查看详情</a>
-            </div>
+        <div class="card stat-card">
+            <i class="fas fa-brain fa-2x text-primary mb-2"></i>
+            <div class="stat-number">{{ node_count }}</div>
+            <div class="stat-label">知识节点</div>
+            <a href="/admin/nodes" class="btn btn-sm btn-outline-primary mt-2">查看详情</a>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">关系数量</h5>
-                <p class="card-text">{{ relationship_count }}</p>
-                <a href="/admin/relationships" class="btn btn-primary">查看详情</a>
-            </div>
+        <div class="card stat-card">
+            <i class="fas fa-project-diagram fa-2x text-primary mb-2"></i>
+            <div class="stat-number">{{ relationship_count }}</div>
+            <div class="stat-label">关系数量</div>
+            <a href="/admin/relationships" class="btn btn-sm btn-outline-primary mt-2">查看详情</a>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">产品数量</h5>
-                <p class="card-text">{{ product_count }}</p>
-                <a href="/admin/products" class="btn btn-primary">查看详情</a>
-            </div>
+        <div class="card stat-card">
+            <i class="fas fa-shopping-bag fa-2x text-primary mb-2"></i>
+            <div class="stat-number">{{ product_count }}</div>
+            <div class="stat-label">产品数量</div>
+            <a href="/admin/products" class="btn btn-sm btn-outline-primary mt-2">查看详情</a>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">用户数量</h5>
-                <p class="card-text">{{ user_count }}</p>
-                <a href="/admin/users" class="btn btn-primary">查看详情</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mt-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">数据导入</h5>
-                <p class="card-text">从CSV文件导入知识图谱数据</p>
-                <a href="/admin/import" class="btn btn-primary">开始导入</a>
-            </div>
+        <div class="card stat-card">
+            <i class="fas fa-users fa-2x text-primary mb-2"></i>
+            <div class="stat-number">{{ user_count }}</div>
+            <div class="stat-label">用户数量</div>
+            <a href="/admin/users" class="btn btn-sm btn-outline-primary mt-2">查看详情</a>
         </div>
     </div>
 </div>
 
-<div class="row mt-4">
+<!-- 数据导入快捷入口 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="mb-1"><i class="fas fa-file-import me-2 text-primary"></i>批量导入知识库数据</h6>
+                <p class="text-muted mb-0">支持 CSV、Excel 文件格式快速导入</p>
+            </div>
+            <a href="/admin/import" class="btn btn-primary">
+                <i class="fas fa-upload me-2"></i>开始导入
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 最近导入的节点 -->
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h5>最近导入的节点</h5>
+                <h6 class="mb-0"><i class="fas fa-history me-2"></i>最近导入的节点</h6>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 {% if recent_nodes %}
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>类别</th>
-                            <th>内容</th>
-                            <th>来源文件</th>
-                            <th>创建时间</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for node in recent_nodes %}
-                        <tr>
-                            <td>{{ node.id }}</td>
-                            <td>{{ node.category }}</td>
-                            <td>{{ node.content[:50] }}...</td>
-                            <td>{{ node.source_file }}</td>
-                            <td>{{ node.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>类别</th>
+                                <th>内容</th>
+                                <th>来源</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for node in recent_nodes %}
+                            <tr>
+                                <td>{{ node.id }}</td>
+                                <td><span class="badge bg-secondary">{{ node.category }}</span></td>
+                                <td>{{ node.content[:40] }}{% if node.content|length > 40 %}...{% endif %}</td>
+                                <td><small class="text-muted">{{ node.source_file or '-' }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% else %}
-                <p class="text-muted">暂无数据</p>
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                    <p class="mb-0">暂无数据</p>
+                </div>
                 {% endif %}
             </div>
         </div>
     </div>
+
+    <!-- 最近添加的产品 -->
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h5>最近添加的产品</h5>
+                <h6 class="mb-0"><i class="fas fa-box-open me-2"></i>最近添加的产品</h6>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 {% if recent_products %}
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>名称</th>
-                            <th>类别</th>
-                            <th>价格</th>
-                            <th>创建时间</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for product in recent_products %}
-                        <tr>
-                            <td>{{ product.id }}</td>
-                            <td>{{ product.name }}</td>
-                            <td>{{ product.category }}</td>
-                            <td>{{ product.price }}</td>
-                            <td>{{ product.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>名称</th>
+                                <th>类别</th>
+                                <th>价格</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in recent_products %}
+                            <tr>
+                                <td>{{ product.id }}</td>
+                                <td>{{ product.name }}</td>
+                                <td><span class="badge bg-secondary">{{ product.category }}</span></td>
+                                <td>¥{{ product.price }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% else %}
-                <p class="text-muted">暂无数据</p>
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                    <p class="mb-0">暂无数据</p>
+                </div>
                 {% endif %}
             </div>
         </div>

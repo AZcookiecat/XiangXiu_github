@@ -1,33 +1,52 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>产品管理</h1>
-<p class="text-muted">管理湘绣产品信息</p>
+<!-- 页面标题 -->
+<div class="page-header">
+    <h4><i class="fas fa-shopping-bag me-2 text-primary"></i>商品管理</h4>
+    <p class="text-muted">管理湘绣产品信息</p>
+</div>
 
-<div class="mt-4">
-    <div class="card">
-        <div class="card-header">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5>产品列表</h5>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
-                    添加产品
-                </button>
-            </div>
+<!-- 说明卡片 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h6 class="card-title"><i class="fas fa-info-circle me-2"></i>功能说明</h6>
+        <p class="card-text text-muted mb-0">
+            管理湘绣商城的产品信息，包括产品名称、类别、价格、描述和图片。产品将在前端商城展示。
+        </p>
+    </div>
+</div>
+
+<!-- 产品列表 -->
+<div class="card">
+    <div class="card-header">
+        <div class="toolbar mb-0">
+            <h6 class="mb-0">产品列表（共 {{ total_products }} 个）</h6>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                <i class="fas fa-plus me-2"></i>添加产品
+            </button>
         </div>
-        <div class="card-body">
-            <div class="mb-3">
-                <form method="GET" action="/admin/products" class="d-flex">
-                    <input type="text" name="search" class="form-control me-2" placeholder="搜索产品..." value="{{ search_term }}">
-                    <select name="category" class="form-select me-2">
-                        <option value="">所有类别</option>
-                        {% for category in categories %}
-                        <option value="{{ category }}" {% if selected_category == category %}selected{% endif %}>{{ category }}</option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit" class="btn btn-primary">搜索</button>
-                </form>
-            </div>
-            <table class="table table-striped">
+    </div>
+    <div class="card-body">
+        <!-- 搜索表单 -->
+        <div class="mb-4">
+            <form method="GET" action="/admin/products" class="search-form">
+                <input type="text" name="search" class="form-control" placeholder="搜索产品名称..." value="{{ search_term }}">
+                <select name="category" class="form-select" style="width: 180px;">
+                    <option value="">所有类别</option>
+                    {% for category in categories %}
+                    <option value="{{ category }}" {% if selected_category == category %}selected{% endif %}>{{ category }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i>搜索
+                </button>
+            </form>
+        </div>
+
+        <!-- 数据表格 -->
+        <div class="table-responsive">
+            <table class="table table-hover">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -43,70 +62,89 @@
                     {% for product in products %}
                     <tr>
                         <td>{{ product.id }}</td>
-                        <td>{{ product.name }}</td>
-                        <td>{{ product.category }}</td>
-                        <td>{{ product.price }}</td>
-                        <td>{{ product.description[:50] }}...</td>
-                        <td>{{ product.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                         <td>
-                            <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editProductModal" onclick="editProduct({{ product.id }}, '{{ product.name }}', '{{ product.category }}', '{{ product.price }}', '{{ product.description }}', '{{ product.image }}')">
-                                编辑
+                            <strong>{{ product.name }}</strong>
+                            {% if product.image %}
+                            <i class="fas fa-image text-success ms-1" title="有图片"></i>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge bg-secondary">{{ product.category }}</span></td>
+                        <td><span class="text-primary fw-bold">¥{{ product.price }}</span></td>
+                        <td style="max-width: 250px;">
+                            <div style="overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                                {{ product.description }}
+                            </div>
+                        </td>
+                        <td>{{ product.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editProductModal" onclick="editProduct({{ product.id }}, '{{ product.name }}', '{{ product.category }}', '{{ product.price }}', '{{ product.description }}', '{{ product.image }}')">
+                                <i class="fas fa-edit"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-danger" onclick="deleteProduct({{ product.id }})">&nbsp;删除&nbsp;</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteProduct({{ product.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
-            <div class="d-flex justify-content-between align-items-center mt-3">
-                <p class="text-muted">共 {{ total_products }} 个产品</p>
-                <nav>
-                    <ul class="pagination">
-                        {% if page > 1 %}
-                        <li class="page-item"><a class="page-link" href="?page={{ page-1 }}&search={{ search_term }}&category={{ selected_category }}">上一页</a></li>
-                        {% endif %}
-                        {% for p in range(1, total_pages + 1) %}
-                        <li class="page-item {% if p == page %}active{% endif %}"><a class="page-link" href="?page={{ p }}&search={{ search_term }}&category={{ selected_category }}">{{ p }}</a></li>
-                        {% endfor %}
-                        {% if page < total_pages %}
-                        <li class="page-item"><a class="page-link" href="?page={{ page+1 }}&search={{ search_term }}&category={{ selected_category }}">下一页</a></li>
-                        {% endif %}
-                    </ul>
-                </nav>
-            </div>
+        </div>
+
+        <!-- 分页 -->
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <p class="text-muted mb-0">显示第 {{ (page-1)*20+1 if products else 0 }} - {{ (page-1)*20+products|length }} 条，共 {{ total_products }} 条</p>
+            <nav>
+                <ul class="pagination mb-0">
+                    {% if page > 1 %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page-1 }}&search={{ search_term }}&category={{ selected_category }}">上一页</a></li>
+                    {% endif %}
+                    {% for p in range(1, total_pages + 1) %}
+                    <li class="page-item {% if p == page %}active{% endif %}"><a class="page-link" href="?page={{ p }}&search={{ search_term }}&category={{ selected_category }}">{{ p }}</a></li>
+                    {% endfor %}
+                    {% if page < total_pages %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page+1 }}&search={{ search_term }}&category={{ selected_category }}">下一页</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
         </div>
     </div>
 </div>
 
 <!-- 添加产品模态框 -->
-<div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="addProductModalLabel">添加产品</h5>
+                <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>添加产品</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="addProductForm">
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="name" class="form-label">名称</label>
-                        <input type="text" class="form-control" id="name" name="name" required>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">产品名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" required placeholder="输入产品名称">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="category" class="form-label">类别 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="category" name="category" required placeholder="如：湘绣摆件、湘绣服饰">
+                        </div>
                     </div>
                     <div class="mb-3">
-                        <label for="category" class="form-label">类别</label>
-                        <input type="text" class="form-control" id="category" name="category" required>
+                        <label for="price" class="form-label">价格 <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">¥</span>
+                            <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" required placeholder="0.00">
+                        </div>
                     </div>
                     <div class="mb-3">
-                        <label for="price" class="form-label">价格</label>
-                        <input type="number" class="form-control" id="price" name="price" step="0.01" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="description" class="form-label">描述</label>
-                        <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                        <label for="description" class="form-label">产品描述 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="description" name="description" rows="4" required placeholder="输入产品详细描述..."></textarea>
                     </div>
                     <div class="mb-3">
                         <label for="image" class="form-label">图片URL</label>
-                        <input type="text" class="form-control" id="image" name="image">
+                        <input type="text" class="form-control" id="image" name="image" placeholder="输入产品图片链接（可选）">
+                        <div class="form-text">支持网络图片链接或本地图片路径</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -119,31 +157,36 @@
 </div>
 
 <!-- 编辑产品模态框 -->
-<div class="modal fade" id="editProductModal" tabindex="-1" aria-labelledby="editProductModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<div class="modal fade" id="editProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="editProductModalLabel">编辑产品</h5>
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>编辑产品</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="POST" action="/admin/products/edit">
+            <form id="editProductForm">
                 <input type="hidden" id="edit_product_id" name="id">
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="edit_name" class="form-label">名称</label>
-                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_name" class="form-label">产品名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="edit_name" name="name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_category" class="form-label">类别 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="edit_category" name="category" required>
+                        </div>
                     </div>
                     <div class="mb-3">
-                        <label for="edit_category" class="form-label">类别</label>
-                        <input type="text" class="form-control" id="edit_category" name="category" required>
+                        <label for="edit_price" class="form-label">价格 <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">¥</span>
+                            <input type="number" class="form-control" id="edit_price" name="price" step="0.01" min="0" required>
+                        </div>
                     </div>
                     <div class="mb-3">
-                        <label for="edit_price" class="form-label">价格</label>
-                        <input type="number" class="form-control" id="edit_price" name="price" step="0.01" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="edit_description" class="form-label">描述</label>
-                        <textarea class="form-control" id="edit_description" name="description" rows="3" required></textarea>
+                        <label for="edit_description" class="form-label">产品描述 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="edit_description" name="description" rows="4" required></textarea>
                     </div>
                     <div class="mb-3">
                         <label for="edit_image" class="form-label">图片URL</label>
@@ -152,7 +195,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-primary">保存</button>
+                    <button type="button" class="btn btn-primary" onclick="updateProduct()">保存修改</button>
                 </div>
             </form>
         </div>
@@ -166,20 +209,18 @@
         document.getElementById('edit_category').value = category;
         document.getElementById('edit_price').value = price;
         document.getElementById('edit_description').value = description;
-        document.getElementById('edit_image').value = image;
+        document.getElementById('edit_image').value = image || '';
     }
 
     function addProduct() {
         const form = document.getElementById('addProductForm');
         const formData = new FormData(form);
         
-        // 验证表单
         if (!formData.get('name') || !formData.get('category') || !formData.get('price') || !formData.get('description')) {
-            alert('请填写名称、类别、价格和描述');
+            alert('请填写完整的产品信息');
             return;
         }
         
-        // 发送POST请求
         fetch('/admin/products/add', {
             method: 'POST',
             body: formData
@@ -187,12 +228,9 @@
           .then(data => {
               if (data.message === 'Product added successfully') {
                   alert('添加成功！');
-                  // 关闭模态框
                   const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
                   modal.hide();
-                  // 重置表单
                   form.reset();
-                  // 刷新页面
                   location.reload();
               } else {
                   alert('添加失败：' + data.message);
@@ -200,6 +238,34 @@
           })
           .catch(error => {
               alert('添加失败：' + error.message);
+          });
+    }
+
+    function updateProduct() {
+        const form = document.getElementById('editProductForm');
+        const formData = new FormData(form);
+        
+        if (!formData.get('name') || !formData.get('category') || !formData.get('price') || !formData.get('description')) {
+            alert('请填写完整的产品信息');
+            return;
+        }
+        
+        fetch('/admin/products/edit', {
+            method: 'POST',
+            body: formData
+        }).then(response => response.json())
+          .then(data => {
+              if (data.message === 'Product updated successfully') {
+                  alert('修改成功！');
+                  const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
+                  modal.hide();
+                  location.reload();
+              } else {
+                  alert('修改失败：' + data.message);
+              }
+          })
+          .catch(error => {
+              alert('修改失败：' + error.message);
           });
     }
 

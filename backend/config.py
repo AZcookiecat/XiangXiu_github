@@ -12,12 +12,12 @@ class Config:
 class DevelopmentConfig(Config):
     """开发环境配置"""
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL') or 'mysql+mysqlconnector://root:hutbhutb0000@localhost:3306/xiangxiu_culture'
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL') or 'mysql+mysqlconnector://xiangxiu_culture:hutbhutb0000@localhost:3306/xiangxiu_culture'
 
 class ProductionConfig(Config):
     """生产环境配置"""
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL') or 'mysql+mysqlconnector://root:hutbhutb0000@localhost:3306/xiangxiu_culture'
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL') or 'mysql+mysqlconnector://xiangxiu_culture:hutbhutb0000@localhost:3306/xiangxiu_culture'
 
 # 配置字典，用于根据环境选择不同的配置
 config = {

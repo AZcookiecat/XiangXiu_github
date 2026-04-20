@@ -10,6 +10,11 @@ from config import config
 # 创建Flask应用
 app = Flask(__name__)
 
+# AI 助手配置（纯关键词检索模式）
+VECTOR_SEARCH_AVAILABLE = False
+vector_collection = None
+embedding_model = None
+
 # 加载配置
 app_config = config[os.getenv('FLASK_ENV') or 'default']
 app.config.from_object(app_config)
@@ -68,6 +73,19 @@ class KnowledgeNode(db.Model):
     content = db.Column(db.Text, nullable=False)
     source_file = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+class KeywordReply(db.Model):
+    """关键词回复表 - 用于AI助手的关键词匹配"""
+    __tablename__ = 'keyword_reply'
+    id = db.Column(db.Integer, primary_key=True)
+    keyword = db.Column(db.String(200), nullable=False)  # 关键词，多个词用逗号分隔
+    reply_content = db.Column(db.Text, nullable=False)   # 回复内容
+    category = db.Column(db.String(100), nullable=True)  # 分类（可选）
+    priority = db.Column(db.Integer, default=0)          # 优先级，数字越大越优先
+    is_active = db.Column(db.Boolean, default=True)      # 是否启用
+    match_type = db.Column(db.String(20), default='contains')  # 匹配类型：exact(精确), contains(包含), fuzzy(模糊)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
 class KnowledgeRelationship(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1357,5 +1375,299 @@ def admin_delete_model(id):
         db.session.rollback()
         return jsonify({'message': '删除模型失败', 'error': str(e)}), 500
 
+# ==================== 关键词回复管理 ====================
+
+@app.route('/admin/keywords')
+@admin_required
+def admin_keywords():
+    """关键词回复管理页面"""
+    keywords = KeywordReply.query.order_by(KeywordReply.priority.desc()).all()
+    return render_template('admin/keywords.html', keywords=keywords)
+
+@app.route('/admin/keywords/add', methods=['POST'])
+@admin_required
+def admin_add_keyword():
+    """添加关键词回复"""
+    try:
+        keyword = KeywordReply(
+            keyword=request.form.get('keyword', ''),
+            reply_content=request.form.get('reply_content', ''),
+            category=request.form.get('category', ''),
+            priority=int(request.form.get('priority', 0)),
+            match_type=request.form.get('match_type', 'contains'),
+            is_active=request.form.get('is_active') == 'on'
+        )
+        db.session.add(keyword)
+        db.session.commit()
+        return redirect(url_for('admin_keywords'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': '添加失败', 'error': str(e)}), 500
+
+@app.route('/admin/keywords/edit/<int:id>', methods=['POST'])
+@admin_required
+def admin_edit_keyword(id):
+    """编辑关键词回复"""
+    try:
+        keyword = KeywordReply.query.get_or_404(id)
+        keyword.keyword = request.form.get('keyword', '')
+        keyword.reply_content = request.form.get('reply_content', '')
+        keyword.category = request.form.get('category', '')
+        keyword.priority = int(request.form.get('priority', 0))
+        keyword.match_type = request.form.get('match_type', 'contains')
+        keyword.is_active = request.form.get('is_active') == 'on'
+        db.session.commit()
+        return redirect(url_for('admin_keywords'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': '编辑失败', 'error': str(e)}), 500
+
+@app.route('/admin/keywords/delete/<int:id>', methods=['POST'])
+@admin_required
+def admin_delete_keyword(id):
+    """删除关键词回复"""
+    try:
+        keyword = KeywordReply.query.get_or_404(id)
+        db.session.delete(keyword)
+        db.session.commit()
+        return redirect(url_for('admin_keywords'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': '删除失败', 'error': str(e)}), 500
+
+# ==================== AI对话和关键词检索API ====================
+
+import openai
+
+# Deepseek API配置
+DEEPSEEK_API_KEY = 'sk-e74d849cccdd401da5923a4d43accde0'
+DEEPSEEK_BASE_URL = 'https://api.deepseek.com'
+
+def extract_keywords(text):
+    """提取查询关键词（简单分词）"""
+    # 移除标点符号和停用词
+    stopwords = {'的', '了', '是', '我', '有', '和', '就', '不', '人', '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好', '自己', '这'}
+    words = []
+    for word in text.split():
+        # 移除标点
+        word = ''.join(c for c in word if c.isalnum() or '\u4e00' <= c <= '\u9fff')
+        if word and word not in stopwords and len(word) >= 2:
+            words.append(word)
+    return words
+
+def search_keyword_reply(query):
+    """关键词回复匹配 - 最高优先级"""
+    try:
+        # 查询所有启用的关键词回复，按优先级排序
+        keyword_replies = KeywordReply.query.filter_by(is_active=True).order_by(KeywordReply.priority.desc()).all()
+        
+        query_lower = query.lower()
+        
+        for kr in keyword_replies:
+            keywords = [k.strip().lower() for k in kr.keyword.split(',')]
+            
+            for keyword in keywords:
+                if not keyword:
+                    continue
+                    
+                if kr.match_type == 'exact':
+                    # 精确匹配
+                    if query_lower == keyword:
+                        return {
+                            "content": kr.reply_content,
+                            "category": kr.category or "关键词回复",
+                            "matched_keyword": keyword
+                        }
+                elif kr.match_type == 'fuzzy':
+                    # 模糊匹配（包含关系）
+                    if keyword in query_lower or query_lower in keyword:
+                        return {
+                            "content": kr.reply_content,
+                            "category": kr.category or "关键词回复",
+                            "matched_keyword": keyword
+                        }
+                else:  # contains 默认
+                    # 包含匹配
+                    if keyword in query_lower:
+                        return {
+                            "content": kr.reply_content,
+                            "category": kr.category or "关键词回复",
+                            "matched_keyword": keyword
+                        }
+        
+        return None
+    except Exception as e:
+        print(f"关键词回复匹配失败: {e}")
+        return None
+
+def search_knowledge_keywords(query, top_k=3):
+    """关键词检索知识库"""
+    try:
+        keywords = extract_keywords(query)
+        if not keywords:
+            # 没有提取到关键词，返回最新添加的知识
+            nodes = KnowledgeNode.query.order_by(KnowledgeNode.id.desc()).limit(top_k).all()
+        else:
+            # 构建OR条件查询
+            conditions = []
+            for keyword in keywords:
+                conditions.append(KnowledgeNode.content.like(f'%{keyword}%'))
+                conditions.append(KnowledgeNode.category.like(f'%{keyword}%'))
+            
+            from sqlalchemy import or_
+            nodes = KnowledgeNode.query.filter(or_(*conditions)).limit(top_k).all()
+        
+        if nodes:
+            results = []
+            for node in nodes:
+                results.append({
+                    "content": node.content,
+                    "category": node.category,
+                    "relevance": 0.8  # 关键词匹配固定相似度
+                })
+            return results
+        return None
+    except Exception as e:
+        print(f"关键词检索失败: {e}")
+        return None
+
+def init_vector_db():
+    """初始化（纯关键词检索无需额外初始化）"""
+    print("使用纯关键词检索，无需初始化向量库")
+    return True
+
+def sync_knowledge_to_vector():
+    """同步（纯关键词检索无需同步）"""
+    print("使用纯关键词检索，无需同步向量库")
+    return True
+
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    """AI对话接口 - 三级检索：关键词回复 > 知识库 > Deepseek API"""
+    data = request.get_json()
+    user_message = data.get('message', '')
+    
+    if not user_message:
+        return jsonify({'error': '消息不能为空'}), 400
+    
+    # 1. 第一优先级：关键词回复匹配
+    keyword_reply = search_keyword_reply(user_message)
+    if keyword_reply:
+        return jsonify({
+            'source': 'keyword_reply',
+            'answer': keyword_reply['content'],
+            'category': keyword_reply['category'],
+            'matched_keyword': keyword_reply.get('matched_keyword', '')
+        })
+    
+    # 2. 第二优先级：知识库关键词检索
+    knowledge_results = search_knowledge_keywords(user_message, top_k=3)
+    if knowledge_results:
+        # 构建知识库回答
+        answer_parts = []
+        for i, result in enumerate(knowledge_results, 1):
+            answer_parts.append(f"{i}. 【{result['category']}】{result['content']}")
+        
+        knowledge_answer = "\n\n".join(answer_parts)
+        return jsonify({
+            'source': 'knowledge_base',
+            'answer': knowledge_answer,
+            'references': knowledge_results
+        })
+    
+    # 3. 第三优先级：调用Deepseek API
+    try:
+        client = openai.OpenAI(api_key=DEEPSEEK_API_KEY, base_url=DEEPSEEK_BASE_URL)
+        response = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[
+                {"role": "system", "content": "你是湘绣文化专家助手，回答要专业、简洁、有文化内涵。"},
+                {"role": "user", "content": user_message}
+            ],
+            stream=False
+        )
+        return jsonify({
+            'source': 'deepseek',
+            'answer': response.choices[0].message.content
+        })
+    except Exception as e:
+        return jsonify({'error': f'AI服务暂时不可用: {str(e)}'}), 500
+
+@app.route('/api/knowledge/import-file', methods=['POST'])
+def import_knowledge_file():
+    """导入Excel/CSV文件到知识库"""
+    if 'file' not in request.files:
+        return jsonify({'error': '未上传文件'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': '文件名为空'}), 400
+    
+    try:
+        # 根据文件扩展名选择读取方式
+        if file.filename.endswith('.csv'):
+            df = pd.read_csv(file, encoding='utf-8-sig')
+        elif file.filename.endswith(('.xls', '.xlsx')):
+            df = pd.read_excel(file)
+        else:
+            return jsonify({'error': '不支持的文件格式，请上传CSV或Excel文件'}), 400
+        
+        imported_count = 0
+        for _, row in df.iterrows():
+            # 支持多种列名格式
+            category = row.get('category') or row.get('类别') or row.get('分类')
+            content = row.get('content') or row.get('内容') or row.get('详情')
+            
+            if category and content:
+                # 检查是否已存在
+                existing = KnowledgeNode.query.filter_by(
+                    category=str(category),
+                    content=str(content)
+                ).first()
+                
+                if not existing:
+                    new_node = KnowledgeNode(
+                        category=str(category),
+                        content=str(content),
+                        source_file=file.filename
+                    )
+                    db.session.add(new_node)
+                    imported_count += 1
+        
+        db.session.commit()
+        
+        # 同步到向量库
+        sync_knowledge_to_vector()
+        
+        return jsonify({
+            'success': True,
+            'message': f'成功导入 {imported_count} 条知识',
+            'imported_count': imported_count
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'导入失败: {str(e)}'}), 500
+
+@app.route('/api/knowledge/sync', methods=['POST'])
+def sync_knowledge():
+    """手动触发知识库同步到向量库"""
+    try:
+        sync_knowledge_to_vector()
+        return jsonify({'success': True, 'message': '知识库同步完成'})
+    except Exception as e:
+        return jsonify({'error': f'同步失败: {str(e)}'}), 500
+
+# 应用启动时初始化向量库
+@app.before_request
+def before_request():
+    """每个请求前检查向量库是否初始化"""
+    global vector_collection, embedding_model
+    if vector_collection is None and VECTOR_SEARCH_AVAILABLE:
+        init_vector_db()
+
 if __name__ == '__main__':
+    # 启动时初始化向量库
+    with app.app_context():
+        init_vector_db()
     app.run(debug=True)

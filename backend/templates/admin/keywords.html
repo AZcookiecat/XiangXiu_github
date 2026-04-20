@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关键词回复管理 - 湘云绣阁后台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #244d4d;
+            --primary-light: #3a6e6e;
+            --warning-color: #f0ad4e;
+            --danger-color: #d9534f;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #f5f7fa;
+        }
+        
+        .navbar {
+            background-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: 600;
+            color: white !important;
+        }
+        
+        .nav-link {
+            color: rgba(255,255,255,0.9) !important;
+        }
+        
+        .nav-link:hover {
+            color: white !important;
+        }
+        
+        .sidebar {
+            background-color: white;
+            min-height: calc(100vh - 56px);
+            box-shadow: 2px 0 4px rgba(0,0,0,0.05);
+        }
+        
+        .sidebar .nav-link {
+            color: #666 !important;
+            padding: 12px 20px;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            color: var(--primary-color) !important;
+            background-color: rgba(36, 77, 77, 0.05);
+            border-left-color: var(--primary-color);
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .card {
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 8px;
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid #e9ecef;
+            padding: 20px;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-light);
+            border-color: var(--primary-light);
+        }
+        
+        .table th {
+            font-weight: 600;
+            color: #495057;
+            border-top: none;
+        }
+        
+        .badge-priority {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+        
+        .priority-high {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .priority-medium {
+            background-color: #ffc107;
+            color: #000;
+        }
+        
+        .priority-low {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .keyword-cell {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .reply-cell {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        
+        .match-type-badge {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .match-exact {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .match-contains {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .match-fuzzy {
+            background-color: #9b59b6;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/admin">
+                <i class="fas fa-dragon me-2"></i>湘云绣阁管理后台
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/logout">
+                    <i class="fas fa-sign-out-alt me-1"></i>退出登录
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-2 sidebar py-4">
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="/admin">
+                        <i class="fas fa-home me-2"></i>首页
+                    </a>
+                    <a class="nav-link" href="/admin/nodes">
+                        <i class="fas fa-brain me-2"></i>节点管理
+                    </a>
+                    <a class="nav-link active" href="/admin/keywords">
+                        <i class="fas fa-key me-2"></i>关键词回复
+                    </a>
+                    <a class="nav-link" href="/admin/relationships">
+                        <i class="fas fa-project-diagram me-2"></i>关系管理
+                    </a>
+                    <a class="nav-link" href="/admin/products">
+                        <i class="fas fa-shopping-bag me-2"></i>商品管理
+                    </a>
+                    <a class="nav-link" href="/admin/users">
+                        <i class="fas fa-users me-2"></i>用户管理
+                    </a>
+                    <a class="nav-link" href="/admin/models">
+                        <i class="fas fa-cube me-2"></i>3D模型管理
+                    </a>
+                    <a class="nav-link" href="/admin/import">
+                        <i class="fas fa-file-import me-2"></i>数据导入
+                    </a>
+                </nav>
+            </div>
+
+            <!-- 主内容区 -->
+            <div class="col-md-10 main-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="mb-0">
+                        <i class="fas fa-key me-2 text-primary"></i>关键词回复管理
+                    </h4>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addKeywordModal">
+                        <i class="fas fa-plus me-2"></i>添加关键词
+                    </button>
+                </div>
+
+                <!-- 说明卡片 -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h6 class="card-title"><i class="fas fa-info-circle me-2"></i>功能说明</h6>
+                        <p class="card-text text-muted mb-0">
+                            关键词回复用于AI助手自动回复。当用户提问匹配关键词时，直接返回预设回复内容，不再调用AI接口。<br>
+                            <strong>优先级：</strong>关键词回复 > 知识库检索 > Deepseek AI
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 关键词列表 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">关键词列表（共 {{ keywords|length }} 条）</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>关键词</th>
+                                        <th>回复内容</th>
+                                        <th>分类</th>
+                                        <th>匹配方式</th>
+                                        <th>优先级</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for keyword in keywords %}
+                                    <tr>
+                                        <td>{{ keyword.id }}</td>
+                                        <td class="keyword-cell" title="{{ keyword.keyword }}">
+                                            {{ keyword.keyword }}
+                                        </td>
+                                        <td class="reply-cell" title="{{ keyword.reply_content }}">
+                                            {{ keyword.reply_content }}
+                                        </td>
+                                        <td>{{ keyword.category or '-' }}</td>
+                                        <td>
+                                            {% if keyword.match_type == 'exact' %}
+                                            <span class="match-type-badge match-exact">精确</span>
+                                            {% elif keyword.match_type == 'fuzzy' %}
+                                            <span class="match-type-badge match-fuzzy">模糊</span>
+                                            {% else %}
+                                            <span class="match-type-badge match-contains">包含</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if keyword.priority >= 10 %}
+                                            <span class="badge-priority priority-high">高({{ keyword.priority }})</span>
+                                            {% elif keyword.priority >= 5 %}
+                                            <span class="badge-priority priority-medium">中({{ keyword.priority }})</span>
+                                            {% else %}
+                                            <span class="badge-priority priority-low">低({{ keyword.priority }})</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if keyword.is_active %}
+                                            <span class="badge bg-success">启用</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">禁用</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-primary me-1" 
+                                                    data-bs-toggle="modal" data-bs-target="#editKeywordModal{{ keyword.id }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <form action="/admin/keywords/delete/{{ keyword.id }}" method="POST" class="d-inline" 
+                                                  onsubmit="return confirm('确定要删除这个关键词回复吗？')">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加关键词模态框 -->
+    <div class="modal fade" id="addKeywordModal" tabindex="-1" aria-labelledby="addKeywordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addKeywordModalLabel">
+                        <i class="fas fa-plus-circle me-2"></i>添加关键词回复
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="/admin/keywords/add" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="keyword" class="form-label">关键词 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="keyword" name="keyword" required
+                                   placeholder="多个关键词用逗号分隔，如：价格,多少钱,费用">
+                            <div class="form-text">多个关键词用英文逗号分隔，匹配任一关键词即触发回复</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reply_content" class="form-label">回复内容 <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="reply_content" name="reply_content" rows="4" required
+                                      placeholder="输入回复内容..."></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="category" class="form-label">分类</label>
+                                <input type="text" class="form-control" id="category" name="category"
+                                       placeholder="如：价格咨询">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="priority" class="form-label">优先级</label>
+                                <input type="number" class="form-control" id="priority" name="priority" value="0" min="0" max="100">
+                                <div class="form-text">数字越大优先级越高</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="match_type" class="form-label">匹配方式</label>
+                                <select class="form-select" id="match_type" name="match_type">
+                                    <option value="contains">包含匹配</option>
+                                    <option value="exact">精确匹配</option>
+                                    <option value="fuzzy">模糊匹配</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" checked>
+                            <label class="form-check-label" for="is_active">立即启用</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑关键词模态框 -->
+    {% for keyword in keywords %}
+    <div class="modal fade" id="editKeywordModal{{ keyword.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit me-2"></i>编辑关键词回复
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="/admin/keywords/edit/{{ keyword.id }}" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">关键词 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="keyword" required
+                                   value="{{ keyword.keyword }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">回复内容 <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="reply_content" rows="4" required>{{ keyword.reply_content }}</textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">分类</label>
+                                <input type="text" class="form-control" name="category" value="{{ keyword.category or '' }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">优先级</label>
+                                <input type="number" class="form-control" name="priority" 
+                                       value="{{ keyword.priority }}" min="0" max="100">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">匹配方式</label>
+                                <select class="form-select" name="match_type">
+                                    <option value="contains" {% if keyword.match_type == 'contains' %}selected{% endif %}>包含匹配</option>
+                                    <option value="exact" {% if keyword.match_type == 'exact' %}selected{% endif %}>精确匹配</option>
+                                    <option value="fuzzy" {% if keyword.match_type == 'fuzzy' %}selected{% endif %}>模糊匹配</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active{{ keyword.id }}" name="is_active"
+                                   {% if keyword.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active{{ keyword.id }}">启用</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">保存修改</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

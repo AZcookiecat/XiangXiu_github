@@ -376,7 +376,7 @@ onMounted(() => {
 
 .model-preview {
   height: 200px;
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+  background: #244d4d;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -386,27 +386,27 @@ onMounted(() => {
 
 .model-preview.format-glb,
 .model-preview.format-gltf {
-  background: linear-gradient(135deg, #4361ee, #3f37c9);
+  background: #244d4d;
 }
 
 .model-preview.format-obj {
-  background: linear-gradient(135deg, #f72585, #b5179e);
+  background: #244d4d;
 }
 
 .model-preview.format-fbx {
-  background: linear-gradient(135deg, #7209b7, #560bad);
+  background: #244d4d;
 }
 
 .model-preview.format-stl {
-  background: linear-gradient(135deg, #4cc9f0, #4895ef);
+  background: #244d4d;
 }
 
 .model-preview.format-ply {
-  background: linear-gradient(135deg, #2ec4b6, #1a936f);
+  background: #244d4d;
 }
 
 .model-preview.format-dae {
-  background: linear-gradient(135deg, #e76f51, #f4a261);
+  background: #244d4d;
 }
 
 .preview-overlay {

@@ -1,64 +1,133 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>数据导入</h1>
-<p class="text-muted">从CSV文件导入知识图谱数据</p>
+<!-- 页面标题 -->
+<div class="page-header">
+    <h4><i class="fas fa-file-import me-2 text-primary"></i>数据导入</h4>
+    <p class="text-muted">从CSV文件导入知识图谱数据</p>
+</div>
 
-<div class="mt-4">
+<!-- 说明卡片 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h6 class="card-title"><i class="fas fa-info-circle me-2"></i>导入说明</h6>
+        <p class="card-text text-muted mb-0">
+            通过CSV文件批量导入知识节点数据。文件需包含 <strong>category(类别)</strong> 和 <strong>content(内容)</strong> 两列。<br>
+            导入的数据将直接添加到知识库中，供AI助手检索使用。
+        </p>
+    </div>
+</div>
+
+<div class="row">
     <!-- 导入表单 -->
-    <div class="card">
-        <div class="card-header">
-            <h5>CSV文件导入</h5>
-        </div>
-        <div class="card-body">
-            <form method="POST" action="/admin/import">
-                <div class="mb-3">
-                    <label class="form-label">可用的CSV文件</label>
-                    <div class="list-group">
-                        {% for file in csv_files %}
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <span>{{ file }}</span>
-                            <span class="badge bg-secondary">CSV</span>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-upload me-2"></i>CSV文件导入</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/admin/import">
+                    <div class="mb-4">
+                        <label class="form-label">可用的CSV文件</label>
+                        <div class="list-group">
+                            {% for file in csv_files %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-file-csv text-success me-2"></i>{{ file }}</span>
+                                <span class="badge bg-secondary">CSV</span>
+                            </div>
+                            {% else %}
+                            <div class="list-group-item text-muted text-center py-4">
+                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                暂无可用的CSV文件
+                            </div>
+                            {% endfor %}
                         </div>
-                        {% else %}
-                        <div class="list-group-item text-muted">
-                            暂无可用的CSV文件
+                        <div class="form-text mt-2">
+                            请将CSV文件放置在服务器指定目录中
                         </div>
-                        {% endfor %}
                     </div>
+                    <button type="submit" class="btn btn-primary w-100" {% if not csv_files %}disabled{% endif %}>
+                        <i class="fas fa-play me-2"></i>导入所有文件
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 导入结果 -->
+        {% if import_result %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>导入结果</h6>
+            </div>
+            <div class="card-body">
+                {% if import_result.success %}
+                <div class="alert alert-success mb-0">
+                    <h6 class="alert-heading"><i class="fas fa-check-circle me-2"></i>导入成功！</h6>
+                    <p class="mb-0">共导入了 <strong>{{ import_result.imported_count }}</strong> 条数据记录。</p>
                 </div>
-                <button type="submit" class="btn btn-primary">导入所有文件</button>
-            </form>
+                {% else %}
+                <div class="alert alert-danger mb-0">
+                    <h6 class="alert-heading"><i class="fas fa-times-circle me-2"></i>导入失败！</h6>
+                    <p class="mb-0">错误信息：{{ import_result.error }}</p>
+                </div>
+                {% endif %}
+            </div>
         </div>
+        {% endif %}
     </div>
 
-    <!-- 导入结果 -->
-    {% if import_result %}
-    <div class="card mt-4">
-        <div class="card-header">
-            <h5>导入结果</h5>
-        </div>
-        <div class="card-body">
-            {% if import_result.success %}
-            <div class="alert alert-success">
-                <strong>导入成功！</strong> 共导入了 {{ import_result.imported_count }} 条数据记录。
+    <!-- 示例格式 -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>CSV格式示例</h6>
             </div>
-            {% else %}
-            <div class="alert alert-danger">
-                <strong>导入失败！</strong> 错误信息：{{ import_result.error }}
+            <div class="card-body">
+                <p class="text-muted mb-3">CSV文件需包含以下两列：</p>
+                <table class="table table-bordered table-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th>category</th>
+                            <th>content</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>针法</td>
+                            <td>鬅毛针是湘绣独创针法，用于表现动物毛发...</td>
+                        </tr>
+                        <tr>
+                            <td>历史</td>
+                            <td>湘绣起源于湖南民间刺绣，距今已有2000多年历史...</td>
+                        </tr>
+                        <tr>
+                            <td>材料</td>
+                            <td>湘绣主要使用蚕丝线，色彩鲜艳，光泽度好...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="alert alert-info mt-3 mb-0">
+                    <h6 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>注意事项</h6>
+                    <ul class="mb-0 ps-3">
+                        <li>文件编码建议使用 UTF-8</li>
+                        <li>每行一条记录，不要有多余空行</li>
+                        <li>内容中如包含逗号，请用双引号包裹</li>
+                        <li>文件大小建议不超过 10MB</li>
+                    </ul>
+                </div>
             </div>
-            {% endif %}
         </div>
     </div>
-    {% endif %}
+</div>
 
-    <!-- 导入历史 -->
-    <div class="card mt-4">
-        <div class="card-header">
-            <h5>导入历史</h5>
-        </div>
-        <div class="card-body">
-            <table class="table table-striped">
+<!-- 导入历史 -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="fas fa-history me-2"></i>导入历史</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
                 <thead>
                     <tr>
                         <th>时间</th>
@@ -74,16 +143,19 @@
                         <td>{{ history.count }}</td>
                         <td>
                             {% if history.status == 'success' %}
-                            <span class="badge bg-success">成功</span>
+                            <span class="badge bg-success"><i class="fas fa-check me-1"></i>成功</span>
                             {% else %}
-                            <span class="badge bg-danger">失败</span>
+                            <span class="badge bg-danger"><i class="fas fa-times me-1"></i>失败</span>
                             {% endif %}
                         </td>
                         <td>{{ history.details }}</td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="4" class="text-muted">暂无导入历史</td>
+                        <td colspan="4" class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                            暂无导入历史
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

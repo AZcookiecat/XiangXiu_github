@@ -64,7 +64,7 @@ export default {
       }
 
       // 配置Unity WebGL构建路径（使用相对路径确保在不同部署环境下都能正常加载）
-      var buildUrl = "./static/湘绣/Build";
+      var buildUrl = "/static/湘绣/Build";
       var loaderUrl = buildUrl + "/湘绣.loader.js";
       var config = {
         dataUrl: buildUrl + "/湘绣.data",
