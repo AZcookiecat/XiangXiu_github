@@ -294,7 +294,7 @@ const fetchKnowledgeGraph = async () => {
   
   try {
     // 获取图谱数据
-    const response = await axios.get('http://localhost:5000/api/knowledge/graph')
+    const response = await axios.get('/api/knowledge/graph')
     const data = response.data
     
     console.log('API response data:', {
@@ -641,7 +641,7 @@ const submitAddNode = async () => {
     }
     
     // 调用API添加节点
-    await axios.post('http://localhost:5000/api/knowledge/nodes', nodeData)
+    await axios.post('/api/knowledge/nodes', nodeData)
     
     // 重新获取图谱数据
     await fetchKnowledgeGraph()

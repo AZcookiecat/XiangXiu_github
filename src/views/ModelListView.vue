@@ -90,7 +90,7 @@ const searchQuery = ref('')
 const selectedCategory = ref('')
 const loading = ref(false)
 
-const API_BASE_URL = 'http://localhost:5000'
+const API_BASE_URL = ''
 
 const loadModels = async () => {
   loading.value = true

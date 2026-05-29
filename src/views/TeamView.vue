@@ -38,17 +38,6 @@
       </div>
     </section>
                           
-    <!-- 团队荣誉 -->
-    <section class="achievements">
-      <h2>团队荣誉</h2>
-      <div class="achievements-container">
-        <div class="achievement-item" v-for="achievement in achievements" :key="achievement.id">
-          <h3>{{ achievement.title }}</h3>
-          <p>{{ achievement.description }}</p>
-          <span class="year">{{ achievement.year }}</span>
-        </div>
-      </div>
-    </section>
   </div>
 </template>
 
@@ -66,62 +55,55 @@ const teamMembers = ref([
   },
   {
     id: 2,
-    name: '李博士',
-    position: '文化总监',
-    bio: '艺术学博士，研究方向为中国传统工艺文化，致力于湘绣文化的理论研究与传播推广。',
-    image: 'https://pic1.imgdb.cn/item/67fe2d5688c538a9b5d1b561.jpg'
+    name: '李神洲',
+    position: '项目负责人',
+    bio: '',
+    image: '/static/pictures/lsz.jpg'
   },
   {
     id: 3,
-    name: '王设计师',
-    position: '创意设计总监',
-    bio: '知名设计师，专注于传统工艺与现代设计的融合创新，设计的湘绣文创产品深受年轻人喜爱。',
-    image: 'https://pic1.imgdb.cn/item/67fe2d5688c538a9b5d1b561.jpg'
+    name: '向烁安',
+    position: '核心技术负责人',
+    bio: '',
+    image: '/static/pictures/xsa.jpg'
   },
   {
     id: 4,
-    name: '刘工程师',
-    position: '技术总监',
-    bio: '数字媒体技术专家，负责湘绣数字化保护与创新应用技术的研发，推动湘绣与数字技术的融合。',
-    image: 'https://pic1.imgdb.cn/item/67fe2d5688c538a9b5d1b561.jpg'
+    name: '汤青榕',
+    position: '',
+    bio: '',
+    image: '/static/pictures/tqr.jpg'
   },
   {
     id: 5,
-    name: '赵经理',
-    position: '运营总监',
-    bio: '文化产业运营专家，负责团队项目的策划与运营，致力于湘绣文化的市场化推广。',
-    image: 'https://pic1.imgdb.cn/item/67fe2d5688c538a9b5d1b561.jpg'
+    name: '宁妍',
+    position: '',
+    bio: '',
+    image: '/static/pictures/ny.jpg'
   },
   {
     id: 6,
-    name: '陈老师',
-    position: '培训导师',
-    bio: '资深湘绣教师，拥有丰富的教学经验，负责团队的人才培养与教育推广工作。',
-    image: 'https://pic1.imgdb.cn/item/67fe2d5688c538a9b5d1b561.jpg'
+    name: '余思哲',
+    position: '',
+    bio: '',
+    image: '/static/pictures/ysz.png'
+  },
+    {
+    id: 7,
+    name: '王海',
+    position: '',
+    bio: '',
+    image: '/static/pictures/wh.jpg'
+  },
+    {
+    id: 8,
+    name: '胡富喻',
+    position: '',
+    bio: '',
+    image: '/static/pictures/hfy.jpg'
   }
 ])
 
-// 团队荣誉数据
-const achievements = ref([
-  {
-    id: 1,
-    title: '针披寄湘锦——湘绣传统文化虚拟实验平台',
-    description: '第十七届中国大学生计算机设计大赛中南地区赛三等奖',
-    year: '2024年'
-  },
-  {
-    id: 2,
-    title: '针披寄湘锦——湘绣传统文化虚拟实验平台',
-    description: '2024湖南省大学生数字媒体创意设计大赛二等奖',
-    year: '2024年'
-  },
-  {
-    id: 3,
-    title: '湘云绣阁——元宇宙数字湘绣生态系统',
-    description: '第十八届中国大学生计算机设计大赛中南地区赛三等奖',
-    year: '2025年'
-  }
-])
 </script>
 
 <style scoped>

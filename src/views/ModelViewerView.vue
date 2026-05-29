@@ -119,7 +119,7 @@ const error = ref('')
 let scene, camera, renderer, controls, currentModel
 let originalRotation = null
 
-const API_BASE_URL = 'http://localhost:5000'
+const API_BASE_URL = ''
 
 const loadModel = async () => {
   try {
